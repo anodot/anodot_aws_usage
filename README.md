@@ -33,22 +33,34 @@ To upload function to aws need to create zip arhive with binary file.
 For creation neccessary infratructure used terraform (https://www.terraform.io/docs/index.html)
 
 ### Installation steps
-For installation you should have make tool installed on your PC and set AWS_DEFAULT_REGION, AWS_SECRET_ACCESS_KEY ,AWS_ACCESS_KEY_ID env vars.
+For installation you should have make tool installed on your PC and set AWS_DEFAULT_REGION, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID env vars.
+```bash
+make build-image    -- build image with all dependencies for golang and terraform binaries
 
-1. Run **make build-image** to build image with all dependencies for golang and terraform binaries
+make build          -- to build lambda binary
 
-2. Run **make build** to build lambda binary
+make create-archive -- to create archive with bynaries 
 
-3. Run **make create-archive** to create archive with bynaries 
+make copy_to_s3 LAMBDA_S3=your-bucket-name -- to upload arhive to s3 where lambda will be stored
 
-4. Run **make copy_to_s3 LAMBDA_S3=your-bucket-name** to upload arhive to s3 where lambda will be stored
+Fill terraform/input.tfvars with your data:
+ 
+cat input.tfvars
+# Token of anodot customer
+token     =
+# Url to anodot
+anodotUrl =
+# s3 bucket where lambda function stored
+s3_bucket =
+# name of env
 
-5. Fill terraform/input.tfvars with your data 
+make terraform-init -- init terraform provider 
 
-6. Run **make terraform-init**
+make terraform-plan -- create execution plan 
 
-7. Run **make terraform-plan**
+make terraform-apply -- create lambda function
 
-8. Run **make terraform-apply**
+```
 
-Please be aware that terraform will create a state file in terraform/ directory.
+Please be aware that terraform will create a state file in terraform/ directory. State is hihgly important for future updates and destroy infrastructure.
+
