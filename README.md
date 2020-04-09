@@ -15,17 +15,20 @@ All neccessary tasks are described in Makefile.
 Run make help to see all available tasks
 ```bash
 make help
- Available tasks:
+Available tasks:
 	 build-image     -- build image usage_lambda:1.0 with all necessary dependencies for lambda function build and lamdba function creation
 	 build           -- will build source code. Lambda function binary name usage_lambda
 	 create-archive  -- will create archive with binary ready to upload on S3
 	 clean           -- will delete archive and binary
+	 make copy_to_s3 LAMBDA_S3=your-bucket-name           -- copy lambda archive to s3
 	 clean-image     -- will delete usage_lambda image
 
  Terraform related tasks:
 	 terraform-init     -- will initialize terraform providers and modules
 	 terraform-plan     -- will create an execution plan. Shows what will done. What services will be created
-	 terraform-apply     -- will apply an execution plan.
+	 terraform-apply    -- will apply an execution plan.
+	 terraform-plan-destroy    -- will create plan of destroying lambda function.
+	 terraform-apply-destroy   -- will destroy lambda functions.
 ```
 
 To upload function to aws need to create zip arhive with binary file. 
