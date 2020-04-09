@@ -10,7 +10,7 @@
 
 Build and installation are performed with make tool.
 
-All neccassary tasks are described in Makefile. 
+All neccessary tasks are described in Makefile. 
 
 Run make help to see all available tasks
 ```bash
