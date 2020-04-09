@@ -34,6 +34,11 @@ For creation neccessary infratructure used terraform (https://www.terraform.io/d
 
 ### Installation steps
 For installation you should have make tool installed on your PC and set AWS_DEFAULT_REGION, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID env vars.
+
+Steps to create and deploy lambda functions:
+
+1. Build and upload lambda binary:
+
 ```bash
 make build-image    -- build image with all dependencies for golang and terraform binaries
 
@@ -42,9 +47,9 @@ make build          -- to build lambda binary
 make create-archive -- to create archive with bynaries 
 
 make copy_to_s3 LAMBDA_S3=your-bucket-name -- to upload arhive to s3 where lambda will be stored
-
-Fill terraform/input.tfvars with your data:
- 
+```
+2.  Fill terraform/input.tfvars with your data. This is file is needed by terraform and store terraform vars
+``` bash 
 cat input.tfvars
 # Token of anodot customer
 token     =
@@ -52,8 +57,16 @@ token     =
 anodotUrl =
 # s3 bucket where lambda function stored
 s3_bucket =
-# name of env
+# some uniq name of env
+env_name = 
 
+# Regions:
+regions = ["region1", "region2"]
+```
+Please notice that for each region will be created separate function (it will be fetching metric for this region) but it will be deployed into AWS_DEFAULT_REGION. 
+
+3. Deploy lambda function into AWS
+``` bash 
 make terraform-init -- init terraform provider 
 
 make terraform-plan -- create execution plan 
@@ -64,3 +77,10 @@ make terraform-apply -- create lambda function
 
 Please be aware that terraform will create a state file in terraform/ directory. State is hihgly important for future updates and destroy infrastructure.
 
+## How to destroy lambda functions ?
+
+``` bash
+terraform-plan-destroy -- to create plan 
+
+terraform-apply-destroy -- to apply destroy
+```
