@@ -1,8 +1,11 @@
 # Token of anodot customer
-token     = 
+token     =
 # Url to anodot
-anodotUrl = 
+anodotUrl =
 # s3 bucket where lambda function stored
-s3_bucket = 
-# name of env
-env_name  = 
+s3_bucket =
+# some uniq name of env
+env_name = 
+
+# Regions:
+regions = ["region1", "region2"]

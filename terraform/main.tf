@@ -55,8 +55,9 @@ resource "aws_iam_role_policy_attachment" "usage-lambda-policy-attachment" {
 }
 
 resource "aws_lambda_function" "usage-lambda" {
+  count = length(var.regions)
 
-  function_name = "${var.env_name}-usage-lambda"
+  function_name = "${var.regions[count.index]}-usage-lambda"
   s3_bucket = var.s3_bucket
   s3_key = "usage_lambda.zip"
 
@@ -70,27 +71,29 @@ resource "aws_lambda_function" "usage-lambda" {
     variables = {
       anodotUrl = "${var.anodotUrl}"
       token = "${var.token}"
+      region = "${var.regions[count.index]}"
     }
   }
 }
 
 resource "aws_cloudwatch_event_rule" "cronjob_rule" {
-    name        = "${var.env_name}_cronjob_rule"
+    name        = "${var.env_name}-cronjob_rule"
     description = "Just cron like shceduler"
-
     schedule_expression = "rate(20 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "lambda" {
+  count = length(var.regions)
   rule      = aws_cloudwatch_event_rule.cronjob_rule.name
   target_id = "TargetFunction"
-  arn       =  aws_lambda_function.usage-lambda.arn
+  arn       =  aws_lambda_function.usage-lambda[count.index].arn
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch" {
+  count = length(var.regions)
   statement_id  = "AllowExecutionFromCloudWatch"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.usage-lambda.function_name
+  function_name = aws_lambda_function.usage-lambda[count.index].function_name
   principal     = "events.amazonaws.com"
   source_arn    =  aws_cloudwatch_event_rule.cronjob_rule.arn
 }
