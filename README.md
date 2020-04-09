@@ -1,4 +1,4 @@
-# Lamda function for monitoring AWS service usage with Anodot
+## Lamda function for monitoring AWS service usage with Anodot
 
 ## Supported services:
 - EC2
