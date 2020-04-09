@@ -203,16 +203,18 @@ func GetAnodotMetric(name string, timestemps []*time.Time, values []*float64, pr
 }
 
 func LambdaHandler() {
-	region := "us-east-1"
+	c, err := GetConfig()
+	if err != nil {
+		log.Fatalf("Could not parse config: %v", err)
+	}
+
+	region := c.Region
 	session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
 	cloudwatchSvc := cloudwatch.New(session)
 
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
 
-	c, err := GetConfig()
-	if err != nil {
-		log.Fatalf("Could not parse config: %v", err)
-	}
+	
 
 	url, err := url.Parse(c.AnodotUrl)
 	if err != nil {

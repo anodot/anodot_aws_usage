@@ -41,7 +41,6 @@ func GetELBs(session *session.Session) ([]ELB, error) {
 			inew = len(elbnames)
 		}
 
-		inew = i + 20
 		desctagsoutput, err := elbSvc.DescribeTags(&elb.DescribeTagsInput{
 			LoadBalancerNames: elbnames[i:inew],
 		})
@@ -50,7 +49,6 @@ func GetELBs(session *session.Session) ([]ELB, error) {
 		}
 		tagsdescriptions = append(tagsdescriptions, desctagsoutput.TagDescriptions...)
 		i = inew
-
 	}
 
 	for _, elb := range result.LoadBalancerDescriptions {

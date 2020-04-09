@@ -50,6 +50,7 @@ ELB:
 `
 
 type Config struct {
+	Region      string
 	AnodotUrl   string
 	AnodotToken string
 	Resources   []MonitoredResource
@@ -184,14 +185,16 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func GetConfig() (Config, error) {
 	anodotUrl := os.Getenv("anodotUrl")
 	token := os.Getenv("token")
+	region:= os.Getenv("region")
 
-	if anodotUrl == "" || token == "" {
-		return Config{}, errors.New("Need to define env vars anodotUrl, token")
+	if anodotUrl == "" || token == "" || region == "" {
+		return Config{}, errors.New("Need to define env vars anodotUrl, token, region")
 	}
 
 	c := Config{
 		AnodotUrl:   anodotUrl,
 		AnodotToken: token,
+		Region: region,
 	}
 	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
