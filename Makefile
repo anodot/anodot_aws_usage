@@ -51,6 +51,12 @@ terraform-plan:
 terraform-apply:
 	$(TERRAFORM_CMD) apply "start"
 
+terraform-plan-destroy:
+	$(TERRAFORM_CMD) plan -destroy -out delete -var-file input.tfvars
+
+terraform-apply-destroy:
+	$(TERRAFORM_CMD) apply "delete"
+
 copy_to_s3:
 	$(AWSCLI) s3 cp $(LAMBDA_ARCHIVE) s3://$(LAMBDA_S3) 
 
@@ -67,3 +73,5 @@ help:
 	@echo "	$(GREEN) terraform-init $(NC)    -- will initialize terraform providers and modules "
 	@echo "	$(GREEN) terraform-plan $(NC)    -- will create an execution plan. Shows what will done. What services will be created"
 	@echo "	$(GREEN) terraform-apply $(NC)   -- will apply an execution plan."
+	@echo "	$(GREEN) terraform-plan-destroy $(NC)   -- will create plan of destroying lambda function."
+	@echo "	$(GREEN) terraform-apply-destroy $(NC)  -- will destroy lambda functions."
