@@ -91,7 +91,7 @@ Please be aware that terraform will create a state file in terraform/ directory.
 ### How to destroy lambda functions ?
 ---
 ``` bash
-terraform-plan-destroy -- to create plan 
+make terraform-plan-destroy -- to create plan 
 
-terraform-apply-destroy -- to apply destroy
+make terraform-apply-destroy -- to apply destroy
 ```
