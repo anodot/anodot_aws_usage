@@ -4,8 +4,6 @@ token     =
 anodotUrl =
 # s3 bucket where lambda function stored
 s3_bucket =
-# some uniq name of env
-env_name = 
 
-# Regions:
+# Regions where metrics will be fetched:
 regions = ["region1", "region2"]

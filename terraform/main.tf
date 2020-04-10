@@ -77,7 +77,7 @@ resource "aws_lambda_function" "usage-lambda" {
 }
 
 resource "aws_cloudwatch_event_rule" "cronjob_rule" {
-    name        = "${var.env_name}-cronjob_rule"
+    name        = "cronjob_rule"
     description = "Just cron like shceduler"
     schedule_expression = "rate(20 minutes)"
 }
