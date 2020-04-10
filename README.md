@@ -7,7 +7,7 @@
 - ELB 
 
 ## Installation and package build
-
+---
 Build and installation are performed with make tool.
 
 All neccessary tasks are described in Makefile. 
