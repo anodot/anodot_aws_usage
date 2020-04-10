@@ -21,6 +21,9 @@ GREEN := \033[0;32m
 NC := \033[0m
 CYAN := \033[0;36m
 
+deploy: build-image build create-archive copy_to_s3
+create-function: terraform-init terraform-plan terraform-apply
+
 clean-image:
 	docker rmi -f `docker images $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) -a -q` || true
 
@@ -67,7 +70,8 @@ help:
 	@echo "	$(GREEN) create-archive $(NC) -- will create archive with binary ready to upload on S3"
 	@echo "	$(GREEN) clean $(NC)          -- will delete archive and binary"
 	@echo "	$(GREEN) make copy_to_s3 LAMBDA_S3=your-bucket-name $(NC)          -- copy lambda archive to s3"
-	@echo "	$(GREEN) clean-image $(NC)    -- will delete $(BUILD_IMAGE) image \n"
+	@echo "	$(GREEN) clean-image $(NC)    -- will delete $(BUILD_IMAGE) image "
+	@echo "	$(GREEN) deploy $(NC)         -- will run build-image, build, build-image, copy_to_s3  \n"
 
 	@echo "$(CYAN) Terraform related tasks: $(NC) "
 	@echo "	$(GREEN) terraform-init $(NC)    -- will initialize terraform providers and modules "
@@ -75,3 +79,4 @@ help:
 	@echo "	$(GREEN) terraform-apply $(NC)   -- will apply an execution plan."
 	@echo "	$(GREEN) terraform-plan-destroy $(NC)   -- will create plan of destroying lambda function."
 	@echo "	$(GREEN) terraform-apply-destroy $(NC)  -- will destroy lambda functions."
+	@echo "	$(GREEN) create-function $(NC)          -- will run  terraform-init, terraform-plan, terraform-apply ."
