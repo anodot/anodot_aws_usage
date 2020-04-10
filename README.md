@@ -83,7 +83,7 @@ make terraform-apply -- create lambda function
 ```
 Or simply just run
 ```bash
-create-function
+make create-function
 ```
 
 Please be aware that terraform will create a state file in terraform/ directory. State is hihgly important for future updates and destroy infrastructure.
