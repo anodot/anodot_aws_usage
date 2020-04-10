@@ -36,6 +36,7 @@ To upload function to aws need to create zip arhive with binary file.
 For creation neccessary infratructure used terraform (https://www.terraform.io/docs/index.html)
 
 ### Installation steps
+---
 For installation you should have make tool installed on your PC and set AWS_DEFAULT_REGION, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID env vars.
 
 Steps to create and deploy lambda functions:
@@ -51,6 +52,11 @@ make create-archive -- to create archive with bynaries
 
 make copy_to_s3 LAMBDA_S3=your-bucket-name -- to upload arhive to s3 where lambda will be stored
 ```
+Or simply just run:
+``` bash
+make deploy LAMBDA_S3=your-bucket-name
+```
+
 2.  Fill terraform/input.tfvars with your data. This is file is needed by terraform and store terraform vars
 ``` bash 
 cat input.tfvars
@@ -77,11 +83,15 @@ make terraform-plan -- create execution plan
 make terraform-apply -- create lambda function
 
 ```
+Or simply just run
+```bash
+create-function
+```
 
 Please be aware that terraform will create a state file in terraform/ directory. State is hihgly important for future updates and destroy infrastructure.
 
-## How to destroy lambda functions ?
-
+### How to destroy lambda functions ?
+---
 ``` bash
 terraform-plan-destroy -- to create plan 
 
