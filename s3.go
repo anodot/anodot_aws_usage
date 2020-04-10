@@ -69,8 +69,8 @@ func GetS3Buckets(session *session.Session, listmetrics []*cloudwatch.Metric) ([
 func GetS3MetricProperties(bucket S3) map[string]string {
 	properties := map[string]string{
 		"service":    "s3",
-		"BucketName": bucket.BucketName,
-		"Region":     bucket.Region,
+		"bucket_name": bucket.BucketName,
+		"region":     bucket.Region,
 	}
 
 	for k, v := range properties {

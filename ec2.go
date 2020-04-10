@@ -148,7 +148,7 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
-		properties[*v.Key] = *v.Value
+		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
 	for k, v := range properties {

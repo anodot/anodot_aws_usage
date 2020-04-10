@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"fmt"
 	"log"
 	"net/url"
@@ -13,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
-var metricVersion string = "2"
+var metricVersion string = "3"
 
 func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
@@ -200,6 +201,10 @@ func GetAnodotMetric(name string, timestemps []*time.Time, values []*float64, pr
 		metricList = append(metricList, metric)
 	}
 	return metricList
+}
+
+func escape(s string) string {
+	return strings.ReplaceAll(s, ":", "_")
 }
 
 func LambdaHandler() {

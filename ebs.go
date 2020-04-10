@@ -67,6 +67,7 @@ func GetEBSVolumes(session *session.Session) ([]EBS, error) {
 			AZ:     *v.AvailabilityZone,
 			Region: *region,
 			IOPS:   0,
+			State: *v.State,
 		}
 
 		if *v.VolumeType != "standard" {
@@ -93,7 +94,7 @@ func GetEBSMetricProperties(ebs EBS) map[string]string {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
-		properties[*v.Key] = *v.Value
+		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
 	for k, v := range properties {
