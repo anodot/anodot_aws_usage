@@ -85,7 +85,7 @@ resource "aws_cloudwatch_event_rule" "cronjob_rule" {
 resource "aws_cloudwatch_event_target" "lambda" {
   count = length(var.regions)
   rule      = aws_cloudwatch_event_rule.cronjob_rule.name
-  target_id = "TargetFunction"
+  target_id = "TargetFunction-${var.regions[count.index]}"
   arn       =  aws_lambda_function.usage-lambda[count.index].arn
 }
 
