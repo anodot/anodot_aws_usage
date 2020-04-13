@@ -63,6 +63,9 @@ terraform-apply-destroy:
 copy_to_s3:
 	$(AWSCLI) s3 cp $(LAMBDA_ARCHIVE) s3://$(LAMBDA_S3) 
 
+copy_config_s3:
+	$(AWSCLI) s3 cp cloudwatch_metrics.yaml  s3://$(LAMBDA_S3)/usage_lambda/cloudwatch_metrics.yaml 
+
 help:
 	@echo "$(CYAN) Available tasks: $(NC)"
 	@echo "	$(GREEN) build-image $(NC)    -- build image $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) with all necessary dependencies for lambda function build and lamdba function creation"
@@ -70,6 +73,7 @@ help:
 	@echo "	$(GREEN) create-archive $(NC) -- will create archive with binary ready to upload on S3"
 	@echo "	$(GREEN) clean $(NC)          -- will delete archive and binary"
 	@echo "	$(GREEN) make copy_to_s3 LAMBDA_S3=your-bucket-name $(NC)          -- copy lambda archive to s3"
+	@echo "	$(GREEN) make copy_config_s3 LAMBDA_S3=your-bucket-name $(NC)      -- copy config file to s3"
 	@echo "	$(GREEN) clean-image $(NC)    -- will delete $(BUILD_IMAGE) image "
 	@echo "	$(GREEN) deploy $(NC)         -- will run build-image, build, build-image, copy_to_s3  \n"
 

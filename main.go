@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	//"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/anodot/anodot-common/pkg/metrics"
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
-var metricVersion string = "3"
+var metricVersion string = "4"
 var ec2instances []Instance
 var ebsvolumes []EBS
 
@@ -212,7 +212,7 @@ func escape(s string) string {
 	return strings.ReplaceAll(s, ":", "_")
 }
 
-func main() { //LambdaHandler() {
+func LambdaHandler() {
 	c, err := GetConfig()
 	if err != nil {
 		log.Fatalf("Could not parse config: %v", err)
@@ -290,6 +290,6 @@ func main() { //LambdaHandler() {
 	}
 }
 
-/*func main(){
+func main(){
 	lambda.Start(LambdaHandler)
-}*/
+}

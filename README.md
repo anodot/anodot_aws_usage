@@ -15,13 +15,15 @@ All neccessary tasks are described in Makefile.
 Run make help to see all available tasks
 ```bash
 make help
-Available tasks:
+ Available tasks:
 	 build-image     -- build image usage_lambda:1.0 with all necessary dependencies for lambda function build and lamdba function creation
 	 build           -- will build source code. Lambda function binary name usage_lambda
 	 create-archive  -- will create archive with binary ready to upload on S3
 	 clean           -- will delete archive and binary
 	 make copy_to_s3 LAMBDA_S3=your-bucket-name           -- copy lambda archive to s3
+	 make copy_config_s3 LAMBDA_S3=your-bucket-name       -- copy config file to s3
 	 clean-image     -- will delete usage_lambda image
+	 deploy          -- will run build-image, build, build-image, copy_to_s3
 
  Terraform related tasks:
 	 terraform-init     -- will initialize terraform providers and modules
@@ -29,6 +31,7 @@ Available tasks:
 	 terraform-apply    -- will apply an execution plan.
 	 terraform-plan-destroy    -- will create plan of destroying lambda function.
 	 terraform-apply-destroy   -- will destroy lambda functions.
+	 create-function           -- will run  terraform-init, terraform-plan, terraform-apply .
 ```
 
 To upload function to aws need to create zip arhive with binary file. 
@@ -51,6 +54,8 @@ make build          -- to build lambda binary
 make create-archive -- to create archive with bynaries 
 
 make copy_to_s3 LAMBDA_S3=your-bucket-name -- to upload arhive to s3 where lambda will be stored
+
+make copy_config_s3 LAMBDA_S3=your-bucket-name -- upload config on s3
 ```
 Or simply just run:
 ``` bash
@@ -71,6 +76,25 @@ s3_bucket =
 regions = ["region1", "region2"]
 ```
 Please notice that for each region will be created separate function (it will be fetching metric for this region) but it will be deployed into AWS_DEFAULT_REGION. 
+
+3. Fill config file
+``` yaml
+S3: # name of a service to monitor
+  CloudWatchMetrics: # metrics 
+  - Name: BucketSizeBytes # metric name from cloudwatch 
+    Id: test1
+    Namespace: AWS/S3 
+    Period: 3600 
+    Unit: Bytes
+    Stat:  Average
+
+EBS:
+  Tags: # custom tags to filter resources 
+    - Name: KubernetesCluster
+      Value: k8s-features2.anodot.com
+  CustomMetrics: # Custom metric not based on CLoudWatch
+    - Size
+```
 
 3. Deploy lambda function into AWS
 ``` bash 
@@ -94,4 +118,39 @@ Please be aware that terraform will create a state file in terraform/ directory.
 make terraform-plan-destroy -- to create plan 
 
 make terraform-apply-destroy -- to apply destroy
+```
+
+### How to specify resources to be monitored ? 
+--- 
+By deafult function will get metrics and data for all resources. 
+To change this behavior just update  cloudwatch_metrics.yaml file on your s3 bucket with Tags section:
+
+``` yaml 
+EBS:
+  Tags:
+    - Name: KubernetesCluster     
+      Value: k8s-cluster.com
+  CustomMetrics:
+    - Size
+EC2:
+  CustomMetrics:
+    - CoreCount
+```
+
+### How to add additional metrics from cloudwatch ?
+``` yaml
+ELB:
+  CloudWatchMetrics:   
+  - Name: RequestCount
+    Id: test1
+    Namespace: AWS/ELB
+    Period: 600
+    Unit: Count
+    Stat:  Average
+  - Name: EstimatedProcessedBytes
+    Id: test2
+    Namespace: AWS/ELB
+    Period: 600
+    Unit: Bytes
+    Stat:  Average
 ```
