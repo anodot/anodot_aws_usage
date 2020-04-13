@@ -1,12 +1,12 @@
 package main
 
 import (
-	"strings"
 	"fmt"
 	"log"
 	"net/url"
+	"strings"
 	"time"
-	"github.com/aws/aws-lambda-go/lambda"
+	//"github.com/aws/aws-lambda-go/lambda"
 	"github.com/anodot/anodot-common/pkg/metrics"
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,10 +15,14 @@ import (
 )
 
 var metricVersion string = "3"
+var ec2instances []Instance
+var ebsvolumes []EBS
 
 func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
-	ebss, err := GetEBSVolumes(session)
+	ebss, err := GetEBSVolumes(session, resource.Tags)
+	ebsvolumes = ebss
+
 	if err != nil {
 		log.Printf("Cloud not describe EBS volumes %v", err)
 		return anodotMetrics, err
@@ -59,13 +63,13 @@ func GetS3Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch
 		log.Printf("Error during s3 metrics processing: %v", err)
 		return anodotMetrics, err
 	}
-	
+
 	dataInputs := NewGetMetricDataInput(metrics)
 
 	for _, mi := range dataInputs {
 		mi.SetStartTime(time.Now().Add(-36 * time.Hour))
 	}
-	
+
 	metricdataresults, err := cloudWatchFetcher.FetchMetrics(dataInputs)
 	if err != nil {
 		log.Printf("Error during s3 metrics processing: %v", err)
@@ -99,7 +103,7 @@ func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 	}
 
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
-	elbs, err := GetELBs(session)
+	elbs, err := GetELBs(session, resource.Tags)
 	if err != nil {
 		log.Printf("Cloud not describe Load Balancers %v", err)
 		return anodotMetrics, err
@@ -150,6 +154,7 @@ func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 		log.Printf("Could not fetch EC2 instances from AWS %v", err)
 		return anodotMetrics, err
 	}
+	ec2instances = instances
 
 	log.Printf("Found %d instances to process \n", len(instances))
 	metrics, err := GetEc2CloudwatchMetrics(resource, instances)
@@ -207,7 +212,7 @@ func escape(s string) string {
 	return strings.ReplaceAll(s, ":", "_")
 }
 
-func LambdaHandler() {
+func main() { //LambdaHandler() {
 	c, err := GetConfig()
 	if err != nil {
 		log.Fatalf("Could not parse config: %v", err)
@@ -218,8 +223,6 @@ func LambdaHandler() {
 	cloudwatchSvc := cloudwatch.New(session)
 
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
-
-	
 
 	url, err := url.Parse(c.AnodotUrl)
 	if err != nil {
@@ -287,7 +290,6 @@ func LambdaHandler() {
 	}
 }
 
-func main(){
+/*func main(){
 	lambda.Start(LambdaHandler)
-}
-
+}*/

@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-var pageSize int64 = 250
+var pageSize int64 = 400
 
 type ELB struct {
 	Name  string
@@ -17,7 +17,7 @@ type ELB struct {
 	Region string
 }
 
-func GetELBs(session *session.Session) ([]ELB, error) {
+func GetELBs(session *session.Session, customtags []Tag) ([]ELB, error) {
 	region := session.Config.Region
 	elbSvc := elb.New(session)
 	input := &elb.DescribeLoadBalancersInput{
@@ -33,23 +33,11 @@ func GetELBs(session *session.Session) ([]ELB, error) {
 		elbnames = append(elbnames, elb.LoadBalancerName)
 	}
 
-	tagsdescriptions := make([]*elb.TagDescription, 0)
-	inew := 0
-	for i := 0; i < len(elbnames); i++ {
-		inew = i + 20
-		if len(elbnames) <= inew {
-			inew = len(elbnames)
-		}
-
-		desctagsoutput, err := elbSvc.DescribeTags(&elb.DescribeTagsInput{
-			LoadBalancerNames: elbnames[i:inew],
-		})
-		if err != nil {
-			return nil, err
-		}
-		tagsdescriptions = append(tagsdescriptions, desctagsoutput.TagDescriptions...)
-		i = inew
+	tagsdescriptions, err := getTagDescriptions(elbnames, elbSvc)
+	if err != nil {
+		return elbs, err
 	}
+	tagsdescriptions = filterTagDescriptions(tagsdescriptions, customtags)
 
 	for _, elb := range result.LoadBalancerDescriptions {
 		for _, td := range tagsdescriptions {
@@ -67,12 +55,56 @@ func GetELBs(session *session.Session) ([]ELB, error) {
 	return elbs, nil
 }
 
+func filterTagDescriptions(tagsdescriptions []*elb.TagDescription, customtags []Tag) []*elb.TagDescription {
+	if len(customtags) == 0 {
+		return tagsdescriptions
+	}
+
+	tagsdescriptions_filtered := make([]*elb.TagDescription, 0)
+	var sametags int = 0
+	for _, tagdesc := range tagsdescriptions {
+		for _, ctag := range customtags {
+			for _, tag := range tagdesc.Tags {
+				if ctag.Name == *tag.Key && ctag.Value == *tag.Value {
+					sametags = sametags + 1
+					if sametags == len(customtags) {
+						tagsdescriptions_filtered = append(tagsdescriptions_filtered, tagdesc)
+						sametags = 0
+					}
+				}
+			}
+		}
+	}
+	return tagsdescriptions_filtered
+}
+
+func getTagDescriptions(elbnames []*string, elbSvc *elb.ELB) ([]*elb.TagDescription, error) {
+	tagsdescriptions := make([]*elb.TagDescription, 0)
+	inew := 0
+	for i := 0; i < len(elbnames); i++ {
+		inew = i + 20
+		if len(elbnames) <= inew {
+			inew = len(elbnames)
+		}
+
+		desctagsoutput, err := elbSvc.DescribeTags(&elb.DescribeTagsInput{
+			LoadBalancerNames: elbnames[i:inew],
+		})
+		if err != nil {
+			return nil, err
+		}
+		tagsdescriptions = append(tagsdescriptions, desctagsoutput.TagDescriptions...)
+		i = inew
+	}
+	return tagsdescriptions, nil
+}
+
 func GetELBMetricProperties(elb ELB) map[string]string {
 	properties := map[string]string{
 		"service": "elb",
 		"name":    elb.Name,
 		"az":      elb.Az,
-		"vpcid":   elb.VPCId,
+		"vpc_id":  elb.VPCId,
 		"region":  elb.Region,
 	}
 

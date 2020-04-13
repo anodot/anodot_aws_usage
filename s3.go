@@ -28,15 +28,15 @@ func GetS3Buckets(session *session.Session, listmetrics []*cloudwatch.Metric) ([
 	if err != nil {
 		return s3list, err
 	}
-	var dbucketname string 
+	var dbucketname string
 	for _, s := range result.Buckets {
 		s3Metrics := make([]S3Metric, 0)
 		for _, m := range listmetrics {
 
 			dimensions := make([]Dimension, 0)
-			 
+
 			for _, d := range m.Dimensions {
-				 
+
 				if *d.Name == "BucketName" {
 					dbucketname = *d.Value
 					if *d.Value == *s.Name {
@@ -68,9 +68,9 @@ func GetS3Buckets(session *session.Session, listmetrics []*cloudwatch.Metric) ([
 
 func GetS3MetricProperties(bucket S3) map[string]string {
 	properties := map[string]string{
-		"service":    "s3",
+		"service":     "s3",
 		"bucket_name": bucket.BucketName,
-		"region":     bucket.Region,
+		"region":      bucket.Region,
 	}
 
 	for k, v := range properties {
@@ -106,7 +106,7 @@ func GetS3CloudwatchMetrics(resource MonitoredResource, buckets []S3) ([]MetricT
 func GetCloudwatchMetricList(cloudwatchSvc *cloudwatch.CloudWatch) ([]*cloudwatch.Metric, error) {
 	namespace := "AWS/S3"
 	lmi := &cloudwatch.ListMetricsInput{
-		Namespace:  &namespace,
+		Namespace: &namespace,
 	}
 
 	listmetrics, err := cloudwatchSvc.ListMetrics(lmi)

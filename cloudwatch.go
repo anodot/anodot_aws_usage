@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"time"
 	"log"
+	"time"
 )
 
 var oneSec int64 = 1000000000
@@ -46,7 +46,7 @@ type MetricToFetch struct {
 func NewGetMetricDataInput(mTofetch []MetricToFetch) []*cloudwatch.GetMetricDataInput {
 	// General way:
 	// []Dimension -> Metric -> MetricStat -> []MetricDataQuery -> GetMetricDataInput
-	datainputs:= make([]*cloudwatch.GetMetricDataInput, 0)
+	datainputs := make([]*cloudwatch.GetMetricDataInput, 0)
 	endTime := time.Now()
 	startTime := endTime.Add(time.Duration(tenMinutes))
 
@@ -54,7 +54,7 @@ func NewGetMetricDataInput(mTofetch []MetricToFetch) []*cloudwatch.GetMetricData
 	di := &cloudwatch.GetMetricDataInput{}
 
 	for index, metric := range mTofetch {
-		
+
 		m := metric.MStat
 		dimensions := make([]*cloudwatch.Dimension, 0)
 
@@ -85,7 +85,7 @@ func NewGetMetricDataInput(mTofetch []MetricToFetch) []*cloudwatch.GetMetricData
 
 		mQueries = append(mQueries, mdatQuery)
 
-		if index == len(mTofetch) - 1 || index%400 == 0 && index != 0 {
+		if index == len(mTofetch)-1 || index%400 == 0 && index != 0 {
 
 			di.SetMetricDataQueries(mQueries)
 			di.SetEndTime(endTime)
@@ -93,9 +93,9 @@ func NewGetMetricDataInput(mTofetch []MetricToFetch) []*cloudwatch.GetMetricData
 			datainputs = append(datainputs, di)
 			di = &cloudwatch.GetMetricDataInput{}
 			mQueries = make([]*cloudwatch.MetricDataQuery, 0)
-		} 
+		}
 	}
-	
+
 	return datainputs
 }
 
@@ -103,12 +103,12 @@ type CloudWatchFetcher struct {
 	cloudwatchSvc *cloudwatch.CloudWatch
 }
 
- func (cf *CloudWatchFetcher) FetchMetrics(metricinputs []*cloudwatch.GetMetricDataInput)  ([]*cloudwatch.MetricDataResult, error) {
+func (cf *CloudWatchFetcher) FetchMetrics(metricinputs []*cloudwatch.GetMetricDataInput) ([]*cloudwatch.MetricDataResult, error) {
 
-	metricdataresults:=make([]*cloudwatch.MetricDataResult, 0)
+	metricdataresults := make([]*cloudwatch.MetricDataResult, 0)
 	for _, mi := range metricinputs {
-	    mo, err := cf.cloudwatchSvc.GetMetricData(mi)
-	    if err != nil {
+		mo, err := cf.cloudwatchSvc.GetMetricData(mi)
+		if err != nil {
 			log.Printf("Cloud not fetch metrics from CLoudWatch : %v", err)
 			return metricdataresults, err
 		}

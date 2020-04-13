@@ -1,53 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"gopkg.in/yaml.v2"
+	//"io/ioutil"
 	"log"
 	"os"
-
-	"gopkg.in/yaml.v2"
 )
-
-const conf = `
-S3:
-  CloudWatchMetrics:
-  - Name: BucketSizeBytes
-    Id: test1
-    Namespace: AWS/S3
-    Period: 3600
-    Unit: Bytes
-    Stat:  Average
-  - Name: NumberOfObjects
-    Id: test1
-    Namespace: AWS/S3
-    Period: 3600
-    Unit: Count
-    Stat:  Average
-
-EBS:
-  CustomMetrics:
-    - Size
-EC2:
-  CustomMetrics:
-    - CoreCount
-
-ELB:
-  CloudWatchMetrics:   
-  - Name: RequestCount
-    Id: test1
-    Namespace: AWS/ELB
-    Period: 600
-    Unit: Count
-    Stat:  Average
-  - Name: EstimatedProcessedBytes
-    Id: test2
-    Namespace: AWS/ELB
-    Period: 600
-    Unit: Bytes
-    Stat:  Average
-`
 
 type Config struct {
 	Region      string
@@ -185,28 +150,61 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func GetConfig() (Config, error) {
 	anodotUrl := os.Getenv("anodotUrl")
 	token := os.Getenv("token")
-	region:= os.Getenv("region")
+	region := os.Getenv("region")
+	lambda_bucket := os.Getenv("lambda_bucket")
 
-	if anodotUrl == "" || token == "" || region == "" {
-		return Config{}, errors.New("Need to define env vars anodotUrl, token, region")
+	if anodotUrl == "" || token == "" || region == "" || lambda_bucket == "" {
+		return Config{}, errors.New("Need to define env vars anodotUrl, token, region, lambda_bucket")
 	}
 
 	c := Config{
 		AnodotUrl:   anodotUrl,
 		AnodotToken: token,
-		Region: region,
+		Region:      region,
 	}
+
 	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return c, err
 	}*/
 
-	err := yaml.Unmarshal([]byte(conf), &c)
+	fileData, err := GetConfigFromS3(lambda_bucket, region)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return c, err
+	}
+
+	err = yaml.Unmarshal([]byte(fileData), &c)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return c, err
 	}
 
 	return c, nil
+}
+
+func GetConfigFromS3(bucket_name, region string) ([]byte, error) {
+	//session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	session := session.New()
+	svc := s3.New(session)
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucket_name),
+		Key:    aws.String("usage_lambda/cloudwatch_metrics.yaml"),
+	}
+
+	buf := new(bytes.Buffer)
+	result, err := svc.GetObject(input)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]byte, int(*result.ContentLength))
+	buf.ReadFrom(result.Body)
+	_, err = buf.Read(data)
+
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
