@@ -39,7 +39,8 @@ resource "aws_iam_policy" "usage_lambda_policy" {
         "elasticloadbalancing:DescribeTags",
         "cloudfront:ListDistributions",
         "s3:ListAllMyBuckets",
-        "s3:ListBucket"
+        "s3:ListBucket",
+        "s3:GetObject"
       ],
       "Effect": "Allow",
       "Resource": "*"
@@ -72,6 +73,7 @@ resource "aws_lambda_function" "usage-lambda" {
       anodotUrl = "${var.anodotUrl}"
       token = "${var.token}"
       region = "${var.regions[count.index]}"
+      lambda_bucket = "${var.s3_bucket}"
     }
   }
 }
@@ -79,7 +81,7 @@ resource "aws_lambda_function" "usage-lambda" {
 resource "aws_cloudwatch_event_rule" "cronjob_rule" {
     name        = "cronjob_rule"
     description = "Just cron like shceduler"
-    schedule_expression = "rate(20 minutes)"
+    schedule_expression = "rate(60 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "lambda" {
