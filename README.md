@@ -44,40 +44,7 @@ For installation you should have make tool installed on your PC and set AWS_DEFA
 
 Steps to create and deploy lambda functions:
 
-1. Build and upload lambda binary:
-
-```bash
-make build-image    -- build image with all dependencies for golang and terraform binaries
-
-make build          -- to build lambda binary
-
-make create-archive -- to create archive with bynaries 
-
-make copy_to_s3 LAMBDA_S3=your-bucket-name -- to upload arhive to s3 where lambda will be stored
-
-make copy_config_s3 LAMBDA_S3=your-bucket-name -- upload config on s3
-```
-Or simply just run:
-``` bash
-make deploy LAMBDA_S3=your-bucket-name
-```
-
-2.  Fill terraform/input.tfvars with your data. This is file is needed by terraform and store terraform vars
-``` bash 
-cat input.tfvars
-# Token of anodot customer
-token     =
-# Url to anodot
-anodotUrl =
-# s3 bucket where lambda function stored
-s3_bucket =
-
-# Regions where metrics will be fetched:
-regions = ["region1", "region2"]
-```
-Please notice that for each region will be created separate function (it will be fetching metric for this region) but it will be deployed into AWS_DEFAULT_REGION. 
-
-3. Fill config file
+1. Fill config file
 ``` yaml
 S3: # name of a service to monitor
   CloudWatchMetrics: # metrics 
@@ -96,7 +63,41 @@ EBS:
     - Size
 ```
 
-3. Deploy lambda function into AWS
+2. Build and upload lambda binary:
+
+```bash
+make build-image    -- build image with all dependencies for golang and terraform binaries
+
+make build          -- to build lambda binary
+
+make create-archive -- to create archive with bynaries 
+
+make copy_to_s3 LAMBDA_S3=your-bucket-name -- to upload arhive to s3 where lambda will be stored
+
+make copy_config_s3 LAMBDA_S3=your-bucket-name -- upload config on s3
+```
+Or simply just run:
+``` bash
+make deploy LAMBDA_S3=your-bucket-name
+```
+
+3.  Fill terraform/input.tfvars with your data. This is file is needed by terraform and store terraform vars
+``` bash 
+cat input.tfvars
+# Token of anodot customer
+token     =
+# Url to anodot
+anodotUrl =
+# s3 bucket where lambda function stored
+s3_bucket =
+
+# Regions where metrics will be fetched:
+regions = ["region1", "region2"]
+```
+Please notice that for each region will be created separate function (it will be fetching metric for this region) but it will be deployed into AWS_DEFAULT_REGION. 
+
+
+4. Deploy lambda function into AWS
 ``` bash 
 make terraform-init -- init terraform provider 
 
@@ -147,7 +148,7 @@ ELB:
     Period: 600
     Unit: Count
     Stat:  Average
-  - Name: EstimatedProcessedBytes
+  - Name: EstimatedProcessedBytes # new metric from cloudwatch 
     Id: test2
     Namespace: AWS/ELB
     Period: 600
