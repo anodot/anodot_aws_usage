@@ -25,6 +25,7 @@ type Instance struct {
 	CoreCount          int64
 	ThreadsPerCore     int64
 	Region             string
+	Lifecycle          string
 }
 
 type Filters []*ec2.Filter
@@ -100,7 +101,10 @@ func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 			fmt.Printf("Instance %s in not running state: %s \n", *i.InstanceId, *i.State.Name)
 			continue
 		}
-
+		lifecycle := "normal"
+		if i.InstanceLifecycle != nil {
+			lifecycle = *i.InstanceLifecycle
+		}
 		li = append(li, Instance{
 			CoreCount:          *i.CpuOptions.CoreCount,
 			ThreadsPerCore:     *i.CpuOptions.ThreadsPerCore,
@@ -114,6 +118,7 @@ func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 			VpcId:              *i.VpcId,
 			VirtualizationType: *i.VirtualizationType,
 			Region:             ec2fetcher.region,
+			Lifecycle:          lifecycle,
 		})
 
 	}
@@ -131,22 +136,26 @@ func getInput(fl Filters) *ec2.DescribeInstancesInput {
 
 func GetEc2MetricProperties(ins Instance) map[string]string {
 	properties := map[string]string{
-		"service":            "ec2",
+		"service":             "ec2",
 		"instance_id":         ins.InstanceId,
 		"instance_type":       ins.InstanceType,
-		"monitoring":         ins.Monitoring,
+		"monitoring":          ins.Monitoring,
 		"availability_zone":   ins.AvailabilityZone,
 		"group_name":          ins.GroupName,
-		"state":              ins.State,
+		"state":               ins.State,
 		"vpc_id":              ins.VpcId,
 		"virtualization_type": ins.VirtualizationType,
-		"threads_per_core":     strconv.Itoa(int(ins.ThreadsPerCore)),
-		"region":             ins.Region,
+		"threads_per_core":    strconv.Itoa(int(ins.ThreadsPerCore)),
+		"region":              ins.Region,
+		"lifecycle":           ins.Lifecycle,
 	}
 
 	for _, v := range ins.Tags {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
+		}
+		if len(properties) == 20 {
+			break
 		}
 		properties[escape(*v.Key)] = escape(*v.Value)
 	}
