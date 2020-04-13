@@ -33,7 +33,7 @@ clean:
 
 build-image:
 	#docker build  -t $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) src/
-	docker build --no-cache -t $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) .
+	docker image ls | grep $(BUILD_IMAGE) | grep $(BUILD_IMAGE_VERSION) || docker build --no-cache -t $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) .
 
 build:
 	@echo ">> building binaries with version $(VERSION)"
