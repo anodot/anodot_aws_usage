@@ -20,44 +20,53 @@ type EBS struct {
 	Size   int64
 }
 
-func GetEBSVolumes(session *session.Session) ([]EBS, error) {
+func DescribeVolumes(deafaultfilters map[string]string, ec2svc *ec2.EC2) ([]*ec2.Volume, error) {
+	filters := make([]*ec2.Filter, 0)
+
+	for name, value := range deafaultfilters {
+		filters = append(filters, &ec2.Filter{
+			Name: aws.String(name),
+			Values: []*string{
+				aws.String(value),
+			},
+		})
+	}
+	resultavailable, err := ec2svc.DescribeVolumes(&ec2.DescribeVolumesInput{
+		Filters: filters,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resultavailable.Volumes, nil
+}
+
+func GetEBSVolumes(session *session.Session, customtags []Tag) ([]EBS, error) {
 	ebslist := make([]EBS, 0)
 	ec2svc := ec2.New(session)
 	volumes := make([]*ec2.Volume, 0)
 	region := session.Config.Region
 
-	availablefilter := []*ec2.Filter{
-		&ec2.Filter{
-			Name: aws.String("status"),
-			Values: []*string{
-				aws.String("available"),
-			},
+	deafultfilters := []map[string]string{
+		map[string]string{
+			"status": "available",
 		},
-	}
-	inusefilter := []*ec2.Filter{
-		&ec2.Filter{
-			Name: aws.String("status"),
-			Values: []*string{
-				aws.String("in-use"),
-			},
+		map[string]string{
+			"status": "in-use",
 		},
 	}
 
-	resultavailable, err := ec2svc.DescribeVolumes(&ec2.DescribeVolumesInput{
-		Filters: availablefilter,
-	})
-	if err != nil {
-		return ebslist, err
-	}
+	for _, filter := range deafultfilters {
+		for _, tag := range customtags {
+			filter["tag:"+tag.Name] = tag.Value
+		}
 
-	resultinuse, err := ec2svc.DescribeVolumes(&ec2.DescribeVolumesInput{
-		Filters: inusefilter,
-	})
-	if err != nil {
-		return ebslist, err
+		result, err := DescribeVolumes(filter, ec2svc)
+
+		if err != nil {
+			return ebslist, err
+		}
+		volumes = append(volumes, result...)
 	}
-	volumes = append(volumes, resultinuse.Volumes...)
-	volumes = append(volumes, resultavailable.Volumes...)
 
 	for _, v := range volumes {
 		ebs := EBS{
@@ -67,7 +76,7 @@ func GetEBSVolumes(session *session.Session) ([]EBS, error) {
 			AZ:     *v.AvailabilityZone,
 			Region: *region,
 			IOPS:   0,
-			State: *v.State,
+			State:  *v.State,
 		}
 
 		if *v.VolumeType != "standard" {
@@ -81,13 +90,13 @@ func GetEBSVolumes(session *session.Session) ([]EBS, error) {
 
 func GetEBSMetricProperties(ebs EBS) map[string]string {
 	properties := map[string]string{
-		"service":          "ebs",
-		"volume_id":        ebs.Id,
-		"ebs_type":         ebs.Type,
-		"state":            ebs.State,
+		"service":           "ebs",
+		"volume_id":         ebs.Id,
+		"ebs_type":          ebs.Type,
+		"state":             ebs.State,
 		"availability_zone": ebs.AZ,
-		"iops":             strconv.Itoa(int(ebs.IOPS)),
-		"region":           ebs.Region,
+		"iops":              strconv.Itoa(int(ebs.IOPS)),
+		"region":            ebs.Region,
 	}
 
 	for _, v := range ebs.Tags {
