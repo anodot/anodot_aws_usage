@@ -1,0 +1,36 @@
+S3:
+  CloudWatchMetrics:
+  - Name: BucketSizeBytes
+    Id: test1
+    Namespace: AWS/S3
+    Period: 3600
+    Unit: Bytes
+    Stat:  Average
+  - Name: NumberOfObjects
+    Id: test1
+    Namespace: AWS/S3
+    Period: 3600
+    Unit: Count
+    Stat:  Average
+
+EBS:
+  CustomMetrics:
+    - Size
+EC2:
+  CustomMetrics:
+    - CoreCount
+
+ELB:
+  CloudWatchMetrics:   
+  - Name: RequestCount
+    Id: test1
+    Namespace: AWS/ELB
+    Period: 300
+    Unit: Count
+    Stat:  Sum
+  - Name: EstimatedProcessedBytes
+    Id: test2
+    Namespace: AWS/ELB
+    Period: 300
+    Unit: Bytes
+    Stat:  Average
