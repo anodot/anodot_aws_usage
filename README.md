@@ -46,18 +46,6 @@ Steps to create and deploy lambda functions:
 
 1. Build and upload lambda binary:
 
-```bash
-make build-image    -- build image with all dependencies for golang and terraform binaries
-
-make build          -- to build lambda binary
-
-make create-archive -- to create archive with bynaries 
-
-make copy_to_s3 LAMBDA_S3=your-bucket-name -- to upload arhive to s3 where lambda will be stored
-
-make copy_config_s3 LAMBDA_S3=your-bucket-name -- upload config on s3
-```
-Or simply just run:
 ``` bash
 make deploy LAMBDA_S3=your-bucket-name
 ```
@@ -79,15 +67,7 @@ Please notice that for each region will be created separate function (it will be
 
 
 3. Deploy lambda function into AWS
-``` bash 
-make terraform-init -- init terraform provider 
 
-make terraform-plan -- create execution plan 
-
-make terraform-apply -- create lambda function
-
-```
-Or simply just run
 ```bash
 make create-function
 ```
