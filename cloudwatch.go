@@ -6,8 +6,7 @@ import (
 	"time"
 )
 
-var oneSec int64 = 1000000000
-var tenMinutes int64 = -60 * 60 * oneSec
+const offset time.Duration = time.Hour
 
 type Tag struct {
 	Name  string
@@ -48,7 +47,7 @@ func NewGetMetricDataInput(mTofetch []MetricToFetch) []*cloudwatch.GetMetricData
 	// []Dimension -> Metric -> MetricStat -> []MetricDataQuery -> GetMetricDataInput
 	datainputs := make([]*cloudwatch.GetMetricDataInput, 0)
 	endTime := time.Now()
-	startTime := endTime.Add(time.Duration(tenMinutes))
+	startTime := endTime.Add(-offset)
 
 	mQueries := make([]*cloudwatch.MetricDataQuery, 0)
 	di := &cloudwatch.GetMetricDataInput{}
