@@ -44,26 +44,7 @@ For installation you should have make tool installed on your PC and set AWS_DEFA
 
 Steps to create and deploy lambda functions:
 
-1. Fill config file
-``` yaml
-S3: # name of a service to monitor
-  CloudWatchMetrics: # metrics 
-  - Name: BucketSizeBytes # metric name from cloudwatch 
-    Id: test1
-    Namespace: AWS/S3 
-    Period: 3600 
-    Unit: Bytes
-    Stat:  Average
-
-EBS:
-  Tags: # custom tags to filter resources 
-    - Name: KubernetesCluster
-      Value: k8s-features2.anodot.com
-  CustomMetrics: # Custom metric not based on CLoudWatch
-    - Size
-```
-
-2. Build and upload lambda binary:
+1. Build and upload lambda binary:
 
 ```bash
 make build-image    -- build image with all dependencies for golang and terraform binaries
@@ -81,7 +62,7 @@ Or simply just run:
 make deploy LAMBDA_S3=your-bucket-name
 ```
 
-3.  Fill terraform/input.tfvars with your data. This is file is needed by terraform and store terraform vars
+2.  Fill terraform/input.tfvars with your data. This is file is needed by terraform and store terraform vars
 ``` bash 
 cat input.tfvars
 # Token of anodot customer
@@ -97,7 +78,7 @@ regions = ["region1", "region2"]
 Please notice that for each region will be created separate function (it will be fetching metric for this region) but it will be deployed into AWS_DEFAULT_REGION. 
 
 
-4. Deploy lambda function into AWS
+3. Deploy lambda function into AWS
 ``` bash 
 make terraform-init -- init terraform provider 
 
@@ -121,37 +102,3 @@ make terraform-plan-destroy -- to create plan
 make terraform-apply-destroy -- to apply destroy
 ```
 
-### How to specify resources to be monitored ? 
---- 
-By deafult function will get metrics and data for all resources. 
-To change this behavior just update  cloudwatch_metrics.yaml file on your s3 bucket with Tags section:
-
-``` yaml 
-EBS:
-  Tags:
-    - Name: KubernetesCluster     
-      Value: k8s-cluster.com
-  CustomMetrics:
-    - Size
-EC2:
-  CustomMetrics:
-    - CoreCount
-```
-
-### How to add additional metrics from cloudwatch ?
-``` yaml
-ELB:
-  CloudWatchMetrics:   
-  - Name: RequestCount
-    Id: test1
-    Namespace: AWS/ELB
-    Period: 600
-    Unit: Count
-    Stat:  Average
-  - Name: EstimatedProcessedBytes # new metric from cloudwatch 
-    Id: test2
-    Namespace: AWS/ELB
-    Period: 600
-    Unit: Bytes
-    Stat:  Average
-```
