@@ -2,26 +2,23 @@ package main
 
 import (
 	"fmt"
+	"github.com/anodot/anodot-common/pkg/metrics"
+	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"net/url"
 	"strings"
 	"time"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/anodot/anodot-common/pkg/metrics"
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
-var metricVersion string = "4"
-var ec2instances []Instance
-var ebsvolumes []EBS
+const metricVersion string = "4"
 
 func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
 	ebss, err := GetEBSVolumes(session, resource.Tags)
-	ebsvolumes = ebss
 
 	if err != nil {
 		log.Printf("Cloud not describe EBS volumes %v", err)
@@ -154,7 +151,6 @@ func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 		log.Printf("Could not fetch EC2 instances from AWS %v", err)
 		return anodotMetrics, err
 	}
-	ec2instances = instances
 
 	log.Printf("Found %d instances to process \n", len(instances))
 	metrics, err := GetEc2CloudwatchMetrics(resource, instances)
@@ -290,6 +286,6 @@ func LambdaHandler() {
 	}
 }
 
-func main(){
+func main() {
 	lambda.Start(LambdaHandler)
 }
