@@ -123,7 +123,7 @@ func GetELBMetricProperties(elb ELB) map[string]string {
 	return properties
 }
 
-func GetELBCloudwatchMetrics(resource MonitoredResource, elbs []ELB) ([]MetricToFetch, error) {
+func GetELBCloudwatchMetrics(resource *MonitoredResource, elbs []ELB) ([]MetricToFetch, error) {
 	metrics := make([]MetricToFetch, 0)
 
 	for _, mstat := range resource.Metrics {

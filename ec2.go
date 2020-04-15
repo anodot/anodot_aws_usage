@@ -183,10 +183,11 @@ func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 		}
 		metricList = append(metricList, metric)
 	}
+
 	return metricList
 }
 
-func GetEc2CloudwatchMetrics(resource MonitoredResource, instances []Instance) ([]MetricToFetch, error) {
+func GetEc2CloudwatchMetrics(resource *MonitoredResource, instances []Instance) ([]MetricToFetch, error) {
 	metrics := make([]MetricToFetch, 0)
 
 	for _, mstat := range resource.Metrics {
@@ -205,5 +206,6 @@ func GetEc2CloudwatchMetrics(resource MonitoredResource, instances []Instance) (
 			metrics = append(metrics, m)
 		}
 	}
+
 	return metrics, nil
 }

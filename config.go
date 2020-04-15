@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,16 +13,52 @@ import (
 	"os"
 )
 
+type Tag struct {
+	Name  string
+	Value string
+}
+
+type MonitoredResource struct {
+	Name          string
+	Tags          []Tag
+	Metrics       []MetricStat
+	Ids           []string
+	CustomMetrics []string // List of fields which will be used as measurement
+	MFunction     MetricFunction
+}
+
+func (mr *MonitoredResource) String() string {
+	s := fmt.Sprintf("	Name: %s\n", mr.Name)
+	s = s + "	Tags:\n"
+	for _, tag := range mr.Tags {
+		s = s + fmt.Sprintf("	%s: %s", tag.Name, tag.Value)
+	}
+	s = s + "	Metric stat:\n"
+	for _, ms := range mr.Metrics {
+		s = s + "	" + ms.String()
+	}
+	s = s + "	Cutom metrics:\n"
+	for _, cm := range mr.CustomMetrics {
+		s = s + "	" + cm + "\n"
+	}
+	return s
+}
+
 type Config struct {
 	Region      string
 	AnodotUrl   string
 	AnodotToken string
-	Resources   []MonitoredResource
+	Resources   []*MonitoredResource
 }
 
-func (ic *Config) GetConfigJson() string {
-	out, _ := json.MarshalIndent(ic, " ", " ")
-	return string(out)
+func (c *Config) String() string {
+	s := fmt.Sprintf("Region: %s\nAnodot URL:%s\nAonodot Token%s\n", c.Region, c.AnodotUrl, c.AnodotToken)
+	s = s + "Monitored resources:\n"
+	for _, r := range c.Resources {
+		s = s + "\n"
+		s = s + r.String()
+	}
+	return s
 }
 
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -31,10 +66,20 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&config); err != nil {
 		return err
 	}
-	resources := make([]MonitoredResource, 0)
+	resources := make([]*MonitoredResource, 0)
 	for rname, rkey := range config {
-		mr := MonitoredResource{
+		mr := &MonitoredResource{
 			Name: rname,
+		}
+
+		if rname == "EC2" {
+			mr.MFunction = GetEc2Metrics
+		} else if rname == "EBS" {
+			mr.MFunction = GetEBSMetrics
+		} else if rname == "ELB" {
+			mr.MFunction = GetELBMetrics
+		} else if rname == "S3" {
+			mr.MFunction = GetS3Metrics
 		}
 
 		cmap := rkey.(map[interface{}]interface{})
@@ -143,7 +188,8 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		resources = append(resources, mr)
 	}
 	c.Resources = resources
-	log.Printf("Input config:%v", c.GetConfigJson())
+	log.Printf("Input config:")
+	fmt.Print(c.String())
 	return nil
 }
 

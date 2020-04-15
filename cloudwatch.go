@@ -1,25 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"time"
 )
 
 const offset time.Duration = time.Hour
-
-type Tag struct {
-	Name  string
-	Value string
-}
-
-type MonitoredResource struct {
-	Name          string
-	Tags          []Tag
-	Metrics       []MetricStat
-	Ids           []string
-	CustomMetrics []string // List of fields which will be used as measurement
-}
 
 type Dimension struct {
 	Name  string
@@ -34,6 +22,10 @@ type MetricStat struct {
 	Unit      string
 	Stat      string
 	Label     string
+}
+
+func (ms *MetricStat) String() string {
+	return fmt.Sprintf("      - Name: %s\n		Namespace: %s\n		Period: %d\n		Unit:%s\n		Stat:%s\n", ms.Name, ms.Namespace, ms.Period, ms.Unit, ms.Stat)
 }
 
 type MetricToFetch struct {

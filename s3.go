@@ -81,7 +81,7 @@ func GetS3MetricProperties(bucket S3) map[string]string {
 	return properties
 }
 
-func GetS3CloudwatchMetrics(resource MonitoredResource, buckets []S3) ([]MetricToFetch, error) {
+func GetS3CloudwatchMetrics(resource *MonitoredResource, buckets []S3) ([]MetricToFetch, error) {
 	metrics := make([]MetricToFetch, 0)
 
 	for _, mstat := range resource.Metrics {
