@@ -103,6 +103,9 @@ func GetEBSMetricProperties(ebs EBS) map[string]string {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
+		if len(properties) == 18 {
+			break
+		}
 		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
@@ -118,6 +121,9 @@ func getEBSSizeMetric(ebs []EBS) []metricsAnodot.Anodot20Metric {
 	metricList := make([]metricsAnodot.Anodot20Metric, 0)
 	for _, e := range ebs {
 		properties := GetEBSMetricProperties(e)
+		if accountId != "" {
+			properties["account_id"] = accountId
+		}
 		properties["what"] = "size"
 		properties["metric_version"] = metricVersion
 		metric := metricsAnodot.Anodot20Metric{

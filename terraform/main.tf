@@ -74,6 +74,7 @@ resource "aws_lambda_function" "usage-lambda" {
       token = "${var.token}"
       region = "${var.regions[count.index]}"
       lambda_bucket = "${var.s3_bucket}"
+      accountId     = "${var.accountId}"
     }
   }
 }

@@ -16,6 +16,7 @@ import (
 )
 
 const metricVersion string = "4"
+var accountId string 
 
 func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
@@ -194,6 +195,10 @@ func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 
 func GetAnodotMetric(name string, timestemps []*time.Time, values []*float64, properties map[string]string) []metricsAnodot.Anodot20Metric {
 	properties["metric_version"] = metricVersion
+	if accountId != "" {
+		properties["account_id"] = accountId
+	}
+
 	metricList := make([]metricsAnodot.Anodot20Metric, 0)
 	for i := 0; i < len(values); i++ {
 		properties["what"] = name
@@ -214,7 +219,6 @@ func escape(s string) string {
 }
 
 func LambdaHandler() {
-
 	c, err := GetConfig()
 	if err != nil {
 		log.Fatalf("Could not parse config: %v", err)
@@ -227,6 +231,7 @@ func LambdaHandler() {
 		errors: make([]error, 0),
 	}
 
+	accountId = c.AccountId
 	var wg sync.WaitGroup
 
 	session := session.Must(session.NewSession(&aws.Config{Region: aws.String(c.Region)}))

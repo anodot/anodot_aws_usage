@@ -45,6 +45,7 @@ func (mr *MonitoredResource) String() string {
 }
 
 type Config struct {
+	AccountId   string
 	Region      string
 	AnodotUrl   string
 	AnodotToken string
@@ -52,7 +53,7 @@ type Config struct {
 }
 
 func (c *Config) String() string {
-	s := fmt.Sprintf("Region: %s\nAnodot URL:%s\nAonodot Token%s\n", c.Region, c.AnodotUrl, c.AnodotToken)
+	s := fmt.Sprintf("Region: %s\nAnodot URL:%s\nAonodot Token%s\nAccountId: %s\n", c.Region, c.AnodotUrl, c.AnodotToken, c.AccountId)
 	s = s + "Monitored resources:\n"
 	for _, r := range c.Resources {
 		s = s + "\n"
@@ -198,12 +199,14 @@ func GetConfig() (Config, error) {
 	token := os.Getenv("token")
 	region := os.Getenv("region")
 	lambda_bucket := os.Getenv("lambda_bucket")
+	accountId := os.Getenv("accountId")
 
 	if anodotUrl == "" || token == "" || region == "" || lambda_bucket == "" {
 		return Config{}, errors.New("Need to define env vars anodotUrl, token, region, lambda_bucket")
 	}
 
 	c := Config{
+		AccountId:   accountId,
 		AnodotUrl:   anodotUrl,
 		AnodotToken: token,
 		Region:      region,

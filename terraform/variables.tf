@@ -17,3 +17,9 @@ variable "regions" {
     type  = list(string)
     description = "List of regions where lambda will fetch data. Will be created lambda per region"
 }
+
+variable "accountId" {
+    type = string
+    description = "Custom Id in order to distinguish different AWS accounts"
+    default = ""
+}

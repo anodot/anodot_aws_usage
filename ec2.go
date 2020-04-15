@@ -154,7 +154,7 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
-		if len(properties) == 20 {
+		if len(properties) == 18 {
 			break
 		}
 		properties[escape(*v.Key)] = escape(*v.Value)
@@ -172,6 +172,9 @@ func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 	metricList := make([]metricsAnodot.Anodot20Metric, 0)
 	for _, i := range ins {
 		properties := GetEc2MetricProperties(i)
+		if accountId != "" {
+			properties["account_id"] = accountId
+		}
 		properties["metric_version"] = metricVersion
 		properties["what"] = "cpu_count"
 		metric := metrics.Anodot20Metric{

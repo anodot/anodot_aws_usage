@@ -112,6 +112,9 @@ func GetELBMetricProperties(elb ELB) map[string]string {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
+		if len(properties) == 18 {
+			break
+		}
 		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
