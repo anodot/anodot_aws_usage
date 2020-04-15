@@ -81,4 +81,7 @@ make terraform-plan-destroy -- to create plan
 
 make terraform-apply-destroy -- to apply destroy
 ```
+### If we want to deploy function in multiple accounts, how we can distionguish metrics ?
+
+Add variable accountId into input.tfvars file and to your metrics will be added property account_id.
 
