@@ -25,12 +25,12 @@ ELB:
   - Name: RequestCount
     Id: test1
     Namespace: AWS/ELB
-    Period: 300
+    Period: 3600
     Unit: Count
     Stat:  Sum
   - Name: EstimatedProcessedBytes
     Id: test2
     Namespace: AWS/ELB
-    Period: 300
+    Period: 3600
     Unit: Bytes
     Stat:  Average
