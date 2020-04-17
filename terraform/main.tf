@@ -67,7 +67,8 @@ resource "aws_lambda_function" "usage-lambda" {
 
   runtime = "go1.x"
   reserved_concurrent_executions = 1
-  timeout = 50
+  timeout = 170
+  memory_size = 196
   environment {
     variables = {
       anodotUrl = "${var.anodotUrl}"
