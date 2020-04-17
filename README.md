@@ -1,4 +1,4 @@
-## Lamda function for monitoring AWS service usage with Anodot
+## Lambda function for monitoring AWS service usage with Anodot
 
 ## Supported services:
 - EC2
@@ -8,7 +8,7 @@
 
 ## Installation and package build
 ---
-Build and installation are performed with make tool.
+Build and installation are performed with make tool via Docker (Docker Engine must be avilable).
 
 All neccessary tasks are described in Makefile. 
 
