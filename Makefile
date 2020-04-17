@@ -21,7 +21,7 @@ GREEN := \033[0;32m
 NC := \033[0m
 CYAN := \033[0;36m
 
-deploy: build-image build create-archive copy_to_s3 copy_config_s3
+deploy: clean build-image build create-archive copy_to_s3 copy_config_s3
 create-function: terraform-init terraform-plan terraform-apply
 
 clean-image:
