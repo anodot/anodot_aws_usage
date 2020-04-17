@@ -18,6 +18,44 @@ import (
 const metricVersion string = "4"
 var accountId string 
 
+func GetCloudfrontMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	ditributions, err := GetDitributions(session)
+	if err != nil {
+		log.Printf("Cloud not get list of Cloudfront distributions: %v", err)
+		return anodotMetrics, err
+	}
+
+	metrics, err := GetCloudfrontCloudwatchMetrics(resource, ditributions)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return anodotMetrics, err
+	}
+	metricdatainput := NewGetMetricDataInput(metrics)
+	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+	if err != nil {
+		log.Printf("Error during Cloudfront metrics processing: %v", err)
+		return anodotMetrics, err
+	}
+
+	for _, m := range metrics {
+		for _, mr := range metricdataresults {
+			if *mr.Id == m.MStat.Id {
+				d := m.Resource.(Ditribution)
+				//log.Printf("Fetching CloudWatch metric: %s for ELB Id %s \n", m.MStat.Name, e.Name)
+				anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetCloudfrontMetricProperties(d))
+				anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
+			}
+		}
+	}
+	return anodotMetrics, nil
+	
+}
+
 func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
 	ebss, err := GetEBSVolumes(session, resource.Tags)
@@ -116,10 +154,6 @@ func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 
 	metricdatainput := NewGetMetricDataInput(metrics)
 	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
-	if err != nil {
-		log.Printf("Error during ELB metrics processing: %v", err)
-		return anodotMetrics, err
-	}
 
 	if err != nil {
 		log.Printf("Cloud not fetch ELB metrics from CLoudWatch : %v", err)

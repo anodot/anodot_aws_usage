@@ -81,8 +81,10 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			mr.MFunction = GetELBMetrics
 		} else if rname == "S3" {
 			mr.MFunction = GetS3Metrics
+		} else if rname == "Cloudfront" {
+			mr.MFunction = GetCloudfrontMetrics
 		}
-
+		
 		cmap := rkey.(map[interface{}]interface{})
 		if custommetricsRaw, ok := cmap["CustomMetrics"].([]interface{}); ok {
 			custommetrics := make([]string, 0)
