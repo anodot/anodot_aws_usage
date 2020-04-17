@@ -2,21 +2,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/anodot/anodot-common/pkg/metrics"
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
-	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/anodot/anodot-common/pkg/metrics"
+	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
 const metricVersion string = "4"
-var accountId string 
+
+var accountId string
 
 func GetCloudfrontMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	cloudWatchFetcher := CloudWatchFetcher{
@@ -53,7 +54,7 @@ func GetCloudfrontMetrics(session *session.Session, cloudwatchSvc *cloudwatch.Cl
 		}
 	}
 	return anodotMetrics, nil
-	
+
 }
 
 func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
@@ -252,7 +253,7 @@ func escape(s string) string {
 	return strings.ReplaceAll(s, ":", "_")
 }
 
-func LambdaHandler() {
+func main() { //LambdaHandler() {
 	c, err := GetConfig()
 	if err != nil {
 		log.Fatalf("Could not parse config: %v", err)
@@ -307,6 +308,6 @@ func LambdaHandler() {
 	}
 }
 
-func main() {
+/*func main() {
 	lambda.Start(LambdaHandler)
-}
+}*/

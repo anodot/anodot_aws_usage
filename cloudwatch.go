@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"time"
+
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
 const offset time.Duration = time.Hour
@@ -86,7 +87,6 @@ func NewGetMetricDataInput(mTofetch []MetricToFetch) []*cloudwatch.GetMetricData
 			mQueries = make([]*cloudwatch.MetricDataQuery, 0)
 		}
 	}
-
 	return datainputs
 }
 

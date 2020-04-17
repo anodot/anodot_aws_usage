@@ -1,20 +1,22 @@
-package main 
-import(
+package main
+
+import (
 	"strconv"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 )
 
 type Ditribution struct {
-	Id string 
-	DomainName string
-	Enabled string
+	Id          string
+	DomainName  string
+	Enabled     string
 	HttpVersion string
-	Origins map[string]string
-	Status   string
+	Origins     map[string]string
+	Status      string
 }
 
-func GetDitributions(session *session.Session) ([]Ditribution, error){
+func GetDitributions(session *session.Session) ([]Ditribution, error) {
 	distributions := make([]Ditribution, 0)
 	svc := cloudfront.New(session)
 	input := &cloudfront.ListDistributionsInput{}
@@ -23,29 +25,29 @@ func GetDitributions(session *session.Session) ([]Ditribution, error){
 		return distributions, err
 	}
 
-	for _,d := range result.DistributionList.Items {
+	for _, d := range result.DistributionList.Items {
 		distribution := Ditribution{
-			Id: *d.Id,
-			DomainName: *d.DomainName,
-			Enabled: strconv.FormatBool(*d.Enabled),
+			Id:          *d.Id,
+			DomainName:  *d.DomainName,
+			Enabled:     strconv.FormatBool(*d.Enabled),
 			HttpVersion: *d.HttpVersion,
-			Status: *d.Status,
+			Status:      *d.Status,
 		}
-		origins  := make(map[string]string)
+		origins := make(map[string]string)
 		for _, o := range d.Origins.Items {
 			origins[*o.Id] = *o.DomainName
 		}
 		distribution.Origins = origins
-		distributions = append(distributions, distribution)	
+		distributions = append(distributions, distribution)
 	}
 	return distributions, nil
 }
 
 func GetCloudfrontMetricProperties(distribution Ditribution) map[string]string {
 	properties := map[string]string{
-		"service": "cloudfront",
+		"service":         "cloudfront",
 		"domain_name":     distribution.DomainName,
-		"enabled":     	   distribution.Enabled,
+		"enabled":         distribution.Enabled,
 		"http_version":    distribution.HttpVersion,
 		"distribution_id": distribution.Id,
 		"status":          distribution.Status,

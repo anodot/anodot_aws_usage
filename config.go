@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"gopkg.in/yaml.v2"
+
 	//"io/ioutil"
 	"log"
 	"os"
@@ -84,7 +86,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		} else if rname == "Cloudfront" {
 			mr.MFunction = GetCloudfrontMetrics
 		}
-		
+
 		cmap := rkey.(map[interface{}]interface{})
 		if custommetricsRaw, ok := cmap["CustomMetrics"].([]interface{}); ok {
 			custommetrics := make([]string, 0)
@@ -236,8 +238,8 @@ func GetConfig() (Config, error) {
 }
 
 func GetConfigFromS3(bucket_name, region string) ([]byte, error) {
-	//session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
-	session := session.New()
+	session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	//session := session.New()
 	svc := s3.New(session)
 
 	input := &s3.GetObjectInput{

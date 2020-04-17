@@ -80,19 +80,29 @@ func (i *EC2Fetcher) SetTag(name string, value string) error {
 
 func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 	var li ListInstances
+	var nexttoken *string = nil
+	reservation := make([]*ec2.Reservation, 0)
 	ec2list := make([]*ec2.Instance, 0)
-	result, err := ec2fetcher.instanceService.DescribeInstances(getInput(ec2fetcher.filters))
-	if err != nil {
-		fmt.Println("Error", err)
-		return nil, err
+
+	for {
+		result, err := ec2fetcher.instanceService.DescribeInstances(getInput(ec2fetcher.filters, nexttoken))
+		if err != nil {
+			fmt.Println("Error", err)
+			return nil, err
+		}
+
+		if len(result.Reservations) == 0 {
+			fmt.Println("Not found any instances")
+			return nil, fmt.Errorf("Error: Can not find any instances with this input params")
+		}
+		reservation = append(reservation, result.Reservations...)
+		nexttoken = result.NextToken
+		if nexttoken == nil {
+			break
+		}
 	}
 
-	if len(result.Reservations) == 0 {
-		fmt.Println("Not found any instances")
-		return nil, fmt.Errorf("Error: Can not find any instances with this input params")
-	}
-
-	for _, r := range result.Reservations {
+	for _, r := range reservation { //result.Reservations {
 		ec2list = append(ec2list, r.Instances...)
 	}
 
@@ -125,13 +135,19 @@ func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 	return ListInstances(li), nil
 }
 
-func getInput(fl Filters) *ec2.DescribeInstancesInput {
+func getInput(fl Filters, nexttoken *string) *ec2.DescribeInstancesInput {
+	maxresult := int64(1000)
 	if len(fl) < 0 {
 		return &ec2.DescribeInstancesInput{}
 	}
-	return &ec2.DescribeInstancesInput{
-		Filters: fl,
+	input := &ec2.DescribeInstancesInput{
+		Filters:    fl,
+		MaxResults: &maxresult,
 	}
+	if nexttoken != nil {
+		input.NextToken = nexttoken
+	}
+	return input
 }
 
 func GetEc2MetricProperties(ins Instance) map[string]string {

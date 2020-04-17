@@ -1,9 +1,10 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"strconv"
 )
 
 var pageSize int64 = 400

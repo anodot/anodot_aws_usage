@@ -1,12 +1,13 @@
 package main
 
 import (
+	"strconv"
+	"time"
+
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"strconv"
-	"time"
 )
 
 type EBS struct {
@@ -22,6 +23,8 @@ type EBS struct {
 
 func DescribeVolumes(deafaultfilters map[string]string, ec2svc *ec2.EC2) ([]*ec2.Volume, error) {
 	filters := make([]*ec2.Filter, 0)
+	var nexttoken *string = nil
+	volumes := make([]*ec2.Volume, 0)
 
 	for name, value := range deafaultfilters {
 		filters = append(filters, &ec2.Filter{
@@ -31,13 +34,32 @@ func DescribeVolumes(deafaultfilters map[string]string, ec2svc *ec2.EC2) ([]*ec2
 			},
 		})
 	}
-	resultavailable, err := ec2svc.DescribeVolumes(&ec2.DescribeVolumesInput{
-		Filters: filters,
-	})
-	if err != nil {
-		return nil, err
+
+	for {
+		resultavailable, err := ec2svc.DescribeVolumes(getDecribeInput(filters, nexttoken))
+		if err != nil {
+			return nil, err
+		}
+		volumes = append(volumes, resultavailable.Volumes...)
+		nexttoken = resultavailable.NextToken
+		if nexttoken == nil {
+			break
+		}
 	}
-	return resultavailable.Volumes, nil
+
+	return volumes, nil
+}
+
+func getDecribeInput(filters []*ec2.Filter, nexttoken *string) *ec2.DescribeVolumesInput {
+	maxresult := int64(500)
+	input := &ec2.DescribeVolumesInput{
+		Filters:    filters,
+		MaxResults: &maxresult,
+	}
+	if nexttoken != nil {
+		input.NextToken = nexttoken
+	}
+	return input
 }
 
 func GetEBSVolumes(session *session.Session, customtags []Tag) ([]EBS, error) {
