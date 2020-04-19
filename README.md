@@ -72,7 +72,7 @@ Please notice that for each region will be created separate function (it will be
 make create-function
 ```
 
-Please be aware that terraform will create a state file in terraform/ directory. State is hihgly important for future updates and destroy infrastructure.
+Please be aware that terraform will create a state file in terraform/ directory. State is highly important for future updates and destroy infrastructure.
 
 ### How to destroy lambda functions ?
 ---
