@@ -27,6 +27,8 @@ create-function: terraform-init terraform-plan terraform-apply
 clean-image:
 	docker rmi -f `docker images $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) -a -q` || true
 
+build: clean build-image build
+
 clean:
 	@rm -rf $(APPLICATION_NAME)
 	@rm -rf $(LAMBDA_ARCHIVE)
@@ -35,7 +37,7 @@ build-image:
 	#docker build  -t $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) src/
 	docker image ls | grep $(BUILD_IMAGE) | grep $(BUILD_IMAGE_VERSION) || docker build --no-cache -t $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) .
 
-build:
+build-code:
 	@echo ">> building binaries with version $(VERSION)"
 	$(BUILD_FLAGS) $(GO)  build -o $(APPLICATION_NAME) 
 
