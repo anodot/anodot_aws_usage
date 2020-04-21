@@ -71,7 +71,8 @@ copy_config_s3:
 help:
 	@echo "$(CYAN) Available tasks: $(NC)"
 	@echo "	$(GREEN) build-image $(NC)    -- build image $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) with all necessary dependencies for lambda function build and lamdba function creation"
-	@echo "	$(GREEN) build $(NC)          -- will build source code. Lambda function binary name $(APPLICATION_NAME)"
+	@echo "	$(GREEN) build-code $(NC)     -- will build source code. Lambda function binary name $(APPLICATION_NAME)"
+	@echo "	$(GREEN) build $(NC)          -- will run clean build-image and build-code"
 	@echo "	$(GREEN) create-archive $(NC) -- will create archive with binary ready to upload on S3"
 	@echo "	$(GREEN) clean $(NC)          -- will delete archive and binary"
 	@echo "	$(GREEN) make copy_to_s3 LAMBDA_S3=your-bucket-name $(NC)          -- copy lambda archive to s3"
