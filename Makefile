@@ -21,13 +21,13 @@ GREEN := \033[0;32m
 NC := \033[0m
 CYAN := \033[0;36m
 
-deploy: clean build-image build create-archive copy_to_s3 copy_config_s3
+deploy: build create-archive copy_to_s3 copy_config_s3
 create-function: terraform-init terraform-plan terraform-apply
 
 clean-image:
 	docker rmi -f `docker images $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) -a -q` || true
 
-build: clean build-image build
+build: clean build-image build-code
 
 clean:
 	@rm -rf $(APPLICATION_NAME)
