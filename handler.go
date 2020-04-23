@@ -31,8 +31,6 @@ func (el *ErrorList) Append(err error) {
 	el.errors = append(el.errors, err)
 }
 
-type MetricFunction func(*session.Session, *cloudwatch.CloudWatch, *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error)
-
 func Handle(resources []*MonitoredResource, wg *sync.WaitGroup, sess *session.Session, cloudwatchsvc *cloudwatch.CloudWatch, ml *SyncMetricList, el *ErrorList) {
 
 	for _, resource := range resources {

@@ -26,13 +26,19 @@ func GetDitributions(session *session.Session) ([]Ditribution, error) {
 	}
 
 	for _, d := range result.DistributionList.Items {
+
 		distribution := Ditribution{
 			Id:          *d.Id,
 			DomainName:  *d.DomainName,
 			Enabled:     strconv.FormatBool(*d.Enabled),
-			HttpVersion: *d.HttpVersion,
+			HttpVersion: "None",
 			Status:      *d.Status,
 		}
+
+		if d.HttpVersion != nil {
+			distribution.HttpVersion = *d.HttpVersion
+		}
+
 		origins := make(map[string]string)
 		for _, o := range d.Origins.Items {
 			origins[*o.Id] = *o.DomainName
