@@ -101,7 +101,7 @@ func GetEBSVolumes(session *session.Session, customtags []Tag) ([]EBS, error) {
 			State:  *v.State,
 		}
 
-		if *v.VolumeType != "standard" {
+		if v.Iops != nil {
 			ebs.IOPS = *v.Iops
 		}
 
