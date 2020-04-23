@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"gopkg.in/yaml.v2"
 
-	//"io/ioutil"
 	"log"
 	"os"
 )
@@ -28,6 +29,8 @@ type MonitoredResource struct {
 	CustomMetrics []string // List of fields which will be used as measurement
 	MFunction     MetricFunction
 }
+
+type MetricFunction func(*session.Session, *cloudwatch.CloudWatch, *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error)
 
 func (mr *MonitoredResource) String() string {
 	s := fmt.Sprintf("	Name: %s\n", mr.Name)
@@ -64,6 +67,23 @@ func (c *Config) String() string {
 	return s
 }
 
+func GetMetricFunction(rname string) (MetricFunction, error) {
+	switch rname {
+	case "EC2":
+		return GetEc2Metrics, nil
+	case "EBS":
+		return GetEBSMetrics, nil
+	case "ELB":
+		return GetELBMetrics, nil
+	case "S3":
+		return GetS3Metrics, nil
+	case "Cloudfront":
+		return GetCloudfrontMetrics, nil
+	default:
+		return nil, fmt.Errorf("Unknown resource type: %s", rname)
+	}
+}
+
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	config := map[string]interface{}{}
 	if err := unmarshal(&config); err != nil {
@@ -74,18 +94,11 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		mr := &MonitoredResource{
 			Name: rname,
 		}
-
-		if rname == "EC2" {
-			mr.MFunction = GetEc2Metrics
-		} else if rname == "EBS" {
-			mr.MFunction = GetEBSMetrics
-		} else if rname == "ELB" {
-			mr.MFunction = GetELBMetrics
-		} else if rname == "S3" {
-			mr.MFunction = GetS3Metrics
-		} else if rname == "Cloudfront" {
-			mr.MFunction = GetCloudfrontMetrics
+		mfunc, err := GetMetricFunction(rname)
+		if err != nil {
+			return err
 		}
+		mr.MFunction = mfunc
 
 		cmap := rkey.(map[interface{}]interface{})
 		if custommetricsRaw, ok := cmap["CustomMetrics"].([]interface{}); ok {
