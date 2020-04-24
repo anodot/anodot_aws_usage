@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
@@ -223,9 +224,9 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&config); err != nil {
 		return err
 	}
-	resources := make([]*MonitoredResource, 0)
-	for region, rconfig := range config {
 
+	for region, rconfig := range config {
+		resources := make([]*MonitoredResource, 0)
 		conf := rconfig.(map[interface{}]interface{})
 
 		for rn, rkey := range conf {
@@ -288,17 +289,17 @@ func GetConfig() (Config, error) {
 		Region:      region,
 	}
 
-	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
+	fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return c, err
-	}*/
+	}
 
-	fileData, err := GetConfigFromS3(lambda_bucket, region)
+	/*fileData, err := GetConfigFromS3(lambda_bucket, region)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return c, err
-	}
+	}*/
 
 	err = yaml.Unmarshal([]byte(fileData), &c)
 	if err != nil {
