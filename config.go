@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
@@ -289,17 +288,17 @@ func GetConfig() (Config, error) {
 		Region:      region,
 	}
 
-	fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
+	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return c, err
-	}
+	}*/
 
-	/*fileData, err := GetConfigFromS3(lambda_bucket, region)
+	fileData, err := GetConfigFromS3(lambda_bucket, region)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return c, err
-	}*/
+	}
 
 	err = yaml.Unmarshal([]byte(fileData), &c)
 	if err != nil {
