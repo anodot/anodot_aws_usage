@@ -85,3 +85,39 @@ make terraform-apply-destroy -- to apply destroy
 
 Add variable accountId into input.tfvars file and to your metrics will be added property account_id.
 
+### How to configure which metrics to push per region ?
+Each region should have separate section in cloudwatch_metrics.yaml file with list of metrics to be fetched: 
+```yaml
+us-east-1: # Region where lambda supposed to fetch metrics
+  Cloudfront:
+    CloudWatchMetrics:
+    - Name: BytesDownloaded
+      Id: test1
+      Namespace: AWS/CloudFront
+      Period: 3600
+      Unit: None
+      Stat:  Average
+ap-south-1:
+  EBS:
+    CustomMetrics:
+      - Size
+  EC2:
+    CustomMetrics:
+      - CoreCount
+```
+
+In example above cloudfront metrcs will be feched and pushed for us-east-1 and EBS and EC2 for ap-south-1
+
+### How to specify region where to get  Cloudfront  metrics?
+``` yaml
+ap-south-1:
+  Cloudfront:
+    Region: us-east-1 # Add this options in you need metrics from different region
+    CloudWatchMetrics:
+    - Name: BytesDownloaded
+      Id: test1
+      Namespace: AWS/CloudFront
+      Period: 3600
+      Unit: None
+      Stat:  Average
+```
