@@ -10,6 +10,8 @@ import (
 
 	"github.com/anodot/anodot-common/pkg/metrics"
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+
+	//"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -20,13 +22,17 @@ const metricVersion string = "4"
 
 var accountId string
 
-func GetCloudfrontMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	if resource.CustomRegion != "" {
+		cloudwatchSvc = cloudwatch.New(session.Must(session.NewSession(&aws.Config{Region: aws.String(resource.CustomRegion)})))
+	}
+
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
 	}
 
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
-	ditributions, err := GetDitributions(session)
+	ditributions, err := GetDitributions(ses)
 	if err != nil {
 		log.Printf("Cloud not get list of Cloudfront distributions: %v", err)
 		return anodotMetrics, err
@@ -283,7 +289,7 @@ func LambdaHandler() {
 		log.Fatalf("Could create Anodot metrc submitter: %v", err)
 	}
 
-	Handle(c.Resources, &wg, session, cloudwatchSvc, ml, el)
+	Handle(c.RegionsConfigs[c.Region].Resources, &wg, session, cloudwatchSvc, ml, el)
 	wg.Wait()
 
 	if len(el.errors) > 0 {
