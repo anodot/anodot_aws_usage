@@ -106,7 +106,7 @@ ap-south-1:
       - CoreCount
 ```
 
-In example above cloudfront metrcs will be feched and pushed for us-east-1 and EBS and EC2 for ap-south-1
+I
 
 ### How to specify region where to get  Cloudfront  metrics?
 ``` yaml
@@ -121,3 +121,4 @@ ap-south-1:
       Unit: None
       Stat:  Average
 ```
+In example above cloudfront metrcs will be feched and pushed for us-east-1 and EBS and EC2 for ap-south-1
