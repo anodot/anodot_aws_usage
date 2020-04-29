@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"log"
 	"net/url"
 	"strings"
@@ -12,6 +12,7 @@ import (
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 
 	//"github.com/aws/aws-lambda-go/lambda"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -260,6 +261,20 @@ func escape(s string) string {
 	return strings.ReplaceAll(s, ":", "_")
 }
 
+func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metrics.Anodot20Client) error {
+	response, err := submiter.SubmitMetrics(metrics)
+
+	if err != nil || response.HasErrors() {
+		log.Fatalf("Error during sending metrics to Anodot response: %v   Error: %v", response.RawResponse(), err)
+		if response.HasErrors() {
+			return errors.New(response.ErrorMessage())
+		}
+	} else {
+		log.Printf("Successfully pushed %d metric to anodot \n", len(metrics))
+	}
+	return err
+}
+
 func LambdaHandler() {
 	c, err := GetConfig()
 	if err != nil {
@@ -299,17 +314,11 @@ func LambdaHandler() {
 	}
 
 	if len(ml.metrics) > 0 {
-		response, err := metricSubmitter.SubmitMetrics(ml.metrics)
+		err := SendMetrics(ml.metrics, metricSubmitter)
 		if err != nil {
-			fmt.Printf("Error during sending metrics to Anodot", err)
+			log.Printf("Retry sending metrics to anodot ... ")
+			_ = SendMetrics(ml.metrics, metricSubmitter)
 		}
-
-		if response.HasErrors() {
-			log.Fatalf("Failed to push metrics to anodot: %v", response.RawResponse())
-		} else {
-			log.Printf("Successfully pushed %d metric to anodot \n", len(ml.metrics))
-		}
-
 	} else {
 		log.Print("No any metrics to push ")
 	}
