@@ -231,6 +231,10 @@ func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 				log.Printf("Processing EC2 custom metric CoreCount\n")
 				anodotMetrics = append(anodotMetrics, getCpuCountMetric(instances)...)
 			}
+			if cm == "VCpuCount" {
+				log.Printf("Processing EC2 custom metric VCpuCount\n")
+				anodotMetrics = append(anodotMetrics, getVirtualCpuCountMetric(instances)...)
+			}
 		}
 	}
 	return anodotMetrics, nil
