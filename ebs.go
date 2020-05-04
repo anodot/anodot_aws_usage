@@ -155,6 +155,16 @@ func getEBSSizeMetric(ebs []EBS) []metricsAnodot.Anodot20Metric {
 				time.Now(),
 			},
 		}
+		// temporary add doulblicate metrics with  target_type=counter
+		properties["target_type"] = "counter"
+		metric2 := metricsAnodot.Anodot20Metric{
+			Properties: properties,
+			Value:      float64(e.Size),
+			Timestamp: metricsAnodot.AnodotTimestamp{
+				time.Now(),
+			},
+		}
+		metricList = append(metricList, metric2)
 		metricList = append(metricList, metric)
 	}
 	return metricList

@@ -193,14 +193,24 @@ func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 		}
 		properties["metric_version"] = metricVersion
 		properties["what"] = "cpu_count"
-		vcpu := i.CoreCount * i.ThreadsPerCore
 		metric := metrics.Anodot20Metric{
 			Properties: properties,
-			Value:      float64(vcpu),
+			Value:      float64(i.CoreCount),
 			Timestamp: metrics.AnodotTimestamp{
 				time.Now(),
 			},
 		}
+		// temporary add doulblicate metrics with  target_type=counter
+		properties["target_type"] = "counter"
+		metric2 := metrics.Anodot20Metric{
+			Properties: properties,
+			Value:      float64(i.CoreCount),
+			Timestamp: metrics.AnodotTimestamp{
+				time.Now(),
+			},
+		}
+
+		metricList = append(metricList, metric2)
 		metricList = append(metricList, metric)
 	}
 
@@ -217,9 +227,10 @@ func getVirtualCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 		properties["target_type"] = "counter"
 		properties["metric_version"] = metricVersion
 		properties["what"] = "vcpu_count"
+		vcpu := i.CoreCount * i.ThreadsPerCore
 		metric := metrics.Anodot20Metric{
 			Properties: properties,
-			Value:      float64(i.CoreCount),
+			Value:      float64(vcpu),
 			Timestamp: metrics.AnodotTimestamp{
 				time.Now(),
 			},
