@@ -102,18 +102,19 @@ func getTagDescriptions(elbnames []*string, elbSvc *elb.ELB) ([]*elb.TagDescript
 
 func GetELBMetricProperties(elb ELB) map[string]string {
 	properties := map[string]string{
-		"service": "elb",
-		"name":    elb.Name,
-		"az":      elb.Az,
-		"vpc_id":  elb.VPCId,
-		"region":  elb.Region,
+		"service":          "elb",
+		"name":             elb.Name,
+		"az":               elb.Az,
+		"vpc_id":           elb.VPCId,
+		"region":           elb.Region,
+		"anodot-collector": "aws",
 	}
 
 	for _, v := range elb.Tags {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
-		if len(properties) == 18 {
+		if len(properties) == 17 {
 			break
 		}
 		properties[escape(*v.Key)] = escape(*v.Value)

@@ -164,13 +164,14 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 		"threads_per_core":    strconv.Itoa(int(ins.ThreadsPerCore)),
 		"region":              ins.Region,
 		"lifecycle":           ins.Lifecycle,
+		"anodot-collector":    "aws",
 	}
 
 	for _, v := range ins.Tags {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
-		if len(properties) == 18 {
+		if len(properties) == 17 {
 			break
 		}
 		properties[escape(*v.Key)] = escape(*v.Value)

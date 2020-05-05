@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
-const metricVersion string = "4"
+const metricVersion string = "5"
 
 var accountId string
 

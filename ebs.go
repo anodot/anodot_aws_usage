@@ -119,13 +119,14 @@ func GetEBSMetricProperties(ebs EBS) map[string]string {
 		"availability_zone": ebs.AZ,
 		"iops":              strconv.Itoa(int(ebs.IOPS)),
 		"region":            ebs.Region,
+		"anodot-collector":  "aws",
 	}
 
 	for _, v := range ebs.Tags {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
-		if len(properties) == 18 {
+		if len(properties) == 17 {
 			break
 		}
 		properties[escape(*v.Key)] = escape(*v.Value)

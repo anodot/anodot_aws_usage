@@ -1,10 +1,11 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"strconv"
 )
 
 type S3Metric struct {
@@ -68,9 +69,10 @@ func GetS3Buckets(session *session.Session, listmetrics []*cloudwatch.Metric) ([
 
 func GetS3MetricProperties(bucket S3) map[string]string {
 	properties := map[string]string{
-		"service":     "s3",
-		"bucket_name": bucket.BucketName,
-		"region":      bucket.Region,
+		"service":          "s3",
+		"bucket_name":      bucket.BucketName,
+		"region":           bucket.Region,
+		"anodot-collector": "aws",
 	}
 
 	for k, v := range properties {
