@@ -8,11 +8,14 @@
 
 ## Installation and package build
 ---
-Build and installation are performed with make tool via Docker (Docker Engine must be avilable).
+Some notes before you start: 
+- Building and installation of the lambda file is performed with the make tool via Docker. Please make sure you have a Docker Engine avilable.
+- For creation of the neccessary infratructure we will use terraform (https://www.terraform.io/docs/index.html)
+- All neccessary tasks are described in the Makefile below. 
+- To upload the lambda function to AWS you need to create a zip archive with the binary file you've built
 
-All neccessary tasks are described in Makefile. 
+Run "make help" to see all available tasks:
 
-Run make help to see all available tasks
 ```bash
 make help
  Available tasks:
@@ -32,25 +35,28 @@ make help
 	 terraform-plan-destroy    -- will create plan of destroying lambda function.
 	 terraform-apply-destroy   -- will destroy lambda functions.
 	 create-function           -- will run  terraform-init, terraform-plan, terraform-apply .
-```
+``` 
 
-To upload function to aws need to create zip arhive with binary file. 
-
-For creation neccessary infratructure used terraform (https://www.terraform.io/docs/index.html)
-
-### Installation steps
+## Installation steps
 ---
-For installation you should have make tool installed on your PC and set AWS_DEFAULT_REGION, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID env vars.
+For the installation you should have the make tool installed on your machine and set the following environment vars:
 
-Steps to create and deploy lambda functions:
+``` 
+AWS_DEFAULT_REGION = <Your Region>
+AWS_SECRET_ACCESS_KEY = <Your Secret AWS Access Key>
+AWS_ACCESS_KEY_ID = <Your AWS Access Key ID>
+``` 
 
-1. Build and upload lambda binary:
+Below are the steps required to create and deploy the lambda function:
+
+1. Build and upload the lambda binary:
 
 ``` bash
 make deploy LAMBDA_S3=your-bucket-name
 ```
 
-2.  Fill terraform/input.tfvars with your data. This is file is needed by terraform and store terraform vars
+2.  Fill **terraform/input.tfvars** with your data. This is file is needed by terraform to store terraform vars
+
 ``` bash 
 cat input.tfvars
 # Token of anodot customer
@@ -63,38 +69,57 @@ s3_bucket =
 # Regions where metrics will be fetched:
 regions = ["region1", "region2"]
 ```
-Please notice that for each region will be created separate function (it will be fetching metric for this region) but it will be deployed into AWS_DEFAULT_REGION. 
 
-3. Fill cloudwatch_metrics.yaml with regions and metrics you need to push. 
+Please notice that for each region a separate function will be created (it will be fetching metrics for this region) but it will be deployed into AWS_DEFAULT_REGION. 
 
-4. Deploy lambda function into AWS
+3. Update **cloudwatch_metrics.yaml** with regions and metrics you need to push. 
+
+4. Deploy the lambda function into AWS
 
 ```bash
 make create-function
 ```
 
-Please be aware that terraform will create a state file in terraform/ directory. State is hihgly important for future updates and destroy infrastructure.
+Please be aware that terraform will create a state file in the ```terraform/``` directory. The State is highly important for future updates and destroy infrastructure.
 
-### How to destroy lambda functions ?
+## FAQ 
+---
+
+### How do I specify the different regions from which you get Cloudfront metrics?
+``` yaml
+ap-south-1:
+  Cloudfront:
+    Region: us-east-1 # Add this options in you need metrics from different region
+    CloudWatchMetrics:
+    - Name: BytesDownloaded
+      Id: test1
+      Namespace: AWS/CloudFront
+      Period: 3600
+      Unit: None
+      Stat:  Average
+```
+In the example above cloudfront metrcs will be feched and pushed for us-east-1 and EBS and EC2 for ap-south-1
+
+### How do I destroy lambda functions ?
 ---
 ``` bash
 make terraform-plan-destroy -- to create plan 
 
 make terraform-apply-destroy -- to apply destroy
 ```
-### If we want to deploy function in multiple accounts, how we can distionguish metrics ?
+### If I want to deploy a function in multiple accounts, how can I distionguish between the metrics ?
 
-Add variable accountId into input.tfvars file and to your metrics will be added property account_id.
+Add variable accountId into **input.tfvars** file and to your metrics will be added property account_id.
 
 ### List of custom metrics:
-Custom metric it is a metric calculated directly by lambda (not fetched from CLoudwatch)
+A custom metric is a metric calculated directly by the lambda function (not fetched from CLoudwatch)
 
 EBS has custom metric: Size
 
 EC2 has: CoreCount and VCpuCount - cores count with hyperthreading 
 
-### How to configure which metrics to push per region ?
-Each region should have separate section in cloudwatch_metrics.yaml file with list of metrics to be fetched: 
+### How do I configure which metrics are pushed per region ?
+Each region should have a separate section in cloudwatch_metrics.yaml file with list of metrics to be fetched: 
 ```yaml
 us-east-1: # Region where lambda supposed to fetch metrics
   Cloudfront:
@@ -114,17 +139,3 @@ ap-south-1:
       - CoreCount
 ```
 
-### How to specify region where to get  Cloudfront  metrics?
-``` yaml
-ap-south-1:
-  Cloudfront:
-    Region: us-east-1 # Add this options in you need metrics from different region
-    CloudWatchMetrics:
-    - Name: BytesDownloaded
-      Id: test1
-      Namespace: AWS/CloudFront
-      Period: 3600
-      Unit: None
-      Stat:  Average
-```
-In example above cloudfront metrcs will be feched and pushed for us-east-1 and EBS and EC2 for ap-south-1
