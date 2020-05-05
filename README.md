@@ -85,6 +85,13 @@ make terraform-apply-destroy -- to apply destroy
 
 Add variable accountId into input.tfvars file and to your metrics will be added property account_id.
 
+### List of custom metrics:
+Custom metric it is a metric calculated directly by lambda (not fetched from CLoudwatch)
+
+EBS has custom metric: Size
+
+EC2 has: CoreCount and VCpuCount - cores count with hyperthreading 
+
 ### How to configure which metrics to push per region ?
 Each region should have separate section in cloudwatch_metrics.yaml file with list of metrics to be fetched: 
 ```yaml
@@ -105,8 +112,6 @@ ap-south-1:
     CustomMetrics:
       - CoreCount
 ```
-
-I
 
 ### How to specify region where to get  Cloudfront  metrics?
 ``` yaml
