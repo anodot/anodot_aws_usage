@@ -65,8 +65,9 @@ regions = ["region1", "region2"]
 ```
 Please notice that for each region will be created separate function (it will be fetching metric for this region) but it will be deployed into AWS_DEFAULT_REGION. 
 
+3. Fill cloudwatch_metrics.yaml with regions and metrics you need to push. 
 
-3. Deploy lambda function into AWS
+4. Deploy lambda function into AWS
 
 ```bash
 make create-function
