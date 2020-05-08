@@ -1,7 +1,7 @@
 package main
 
 var metric_templates = map[string]MetricTemplate{
-	"BytesDownloaded": MetricTemplate{Metrictype: "CloudWatchMetrics", Template: CloudwatchMetricTemplate{
+	"BytesDownloaded": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "Cloudfront", Template: CloudwatchMetricTemplate{
 		Metricname: "BytesDownloaded",
 		Period:     "3600",
 		Unit:       "None",
@@ -10,7 +10,7 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Average",
 	},
 	},
-	"Requests": MetricTemplate{Metrictype: "CloudWatchMetrics", Template: CloudwatchMetricTemplate{
+	"Requests": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "Cloudfront", Template: CloudwatchMetricTemplate{
 		Metricname: "Requests",
 		Period:     "3600",
 		Unit:       "None",
@@ -19,7 +19,7 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Average",
 	},
 	},
-	"TotalErrorRate": MetricTemplate{Metrictype: "CloudWatchMetrics", Template: CloudwatchMetricTemplate{
+	"TotalErrorRate": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "Cloudfront", Template: CloudwatchMetricTemplate{
 		Metricname: "TotalErrorRate",
 		Period:     "3600",
 		Unit:       "None",
@@ -28,7 +28,7 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Average",
 	},
 	},
-	"BucketSizeBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", Template: CloudwatchMetricTemplate{
+	"BucketSizeBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "S3", Template: CloudwatchMetricTemplate{
 		Metricname: "BucketSizeBytes",
 		Period:     "3600",
 		Unit:       "Bytes",
@@ -37,7 +37,7 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Average",
 	},
 	},
-	"NumberOfObjects": MetricTemplate{Metrictype: "CloudWatchMetrics", Template: CloudwatchMetricTemplate{
+	"NumberOfObjects": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "S3", Template: CloudwatchMetricTemplate{
 		Metricname: "NumberOfObjects",
 		Period:     "3600",
 		Unit:       "Bytes",
@@ -46,7 +46,7 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Average",
 	},
 	},
-	"RequestCount": MetricTemplate{Metrictype: "CloudWatchMetrics", Template: CloudwatchMetricTemplate{
+	"RequestCount": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "ELB", Template: CloudwatchMetricTemplate{
 		Metricname: "RequestCount",
 		Period:     "3600",
 		Unit:       "Count",
@@ -55,7 +55,7 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Sum",
 	},
 	},
-	"EstimatedProcessedBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", Template: CloudwatchMetricTemplate{
+	"EstimatedProcessedBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "ELB", Template: CloudwatchMetricTemplate{
 		Metricname: "EstimatedProcessedBytes",
 		Period:     "3600",
 		Unit:       "Bytes",
@@ -64,15 +64,15 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Average",
 	},
 	},
-	"CoreCount": MetricTemplate{Metrictype: "CustomMetrics", Template: CustomMetricTemplate{
+	"CoreCount": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "EC2", Template: CustomMetricTemplate{
 		Metricname: "CoreCount",
 	},
 	},
-	"VCpuCount": MetricTemplate{Metrictype: "CustomMetrics", Template: CustomMetricTemplate{
+	"VCpuCount": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "EC2", Template: CustomMetricTemplate{
 		Metricname: "VCpuCount",
 	},
 	},
-	"Size": MetricTemplate{Metrictype: "CustomMetrics", Template: CustomMetricTemplate{
+	"Size": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "EBS", Template: CustomMetricTemplate{
 		Metricname: "Size",
 	},
 	},

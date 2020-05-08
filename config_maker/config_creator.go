@@ -206,11 +206,22 @@ func ChooseMetrics(service string) ([]Metric, error) {
 	return removeDuplicatesMetrics(metrics_), nil
 }
 
+func removeCloudfront(list []string) []string {
+	services := make([]string, 0)
+
+	for _, s := range list {
+		if s != "Cloudfront" {
+			services = append(services, s)
+		}
+	}
+	delete(metrics, "Cloudfront")
+	return services
+}
+
 func ChoseService(region string) ([]Service, error) {
 	chosenservices := make([]Service, 0)
 	servicenames := make([]string, 0)
 	for {
-
 		service, err := CustomSelect("Services", services)
 		if err != nil {
 			fmt.Printf("Prompt failed %v\n", err)
@@ -220,16 +231,26 @@ func ChoseService(region string) ([]Service, error) {
 			break
 		}
 
+		// If Cloudfront has been chosen remove it from service list because it global service
+		// and can be chosen only once
 		if service == "Default (All services above)" {
-			return GetAllMetricsAllServices(), nil
+			chosenservices = GetAllMetricsAllServices()
+			services = removeCloudfront(services)
+			return chosenservices, nil
 		}
 
 		metrics_, err := ChooseMetrics(service)
 		if err != nil {
 			return make([]Service, 0), err
 		}
+
+		if service == "Cloudfront" {
+			services = removeCloudfront(services)
+		}
+
 		chosenservices = append(chosenservices, Service{name: service, metrics: metrics_})
 		servicenames = append(servicenames, service)
+
 		fmt.Printf("You chose next services for region: %s", region)
 		fmt.Println(ListToString(servicenames))
 	}
@@ -267,7 +288,6 @@ func main() {
 	configs := make([]RegionConfig, 0)
 
 	for {
-
 		fmt.Println("Hello please add region you need to monitor: ")
 		region, err := ChoseRegion()
 		if err != nil {
@@ -297,6 +317,7 @@ func main() {
 			break
 		}
 	}
+
 	confstr := RenderConfig(configs)
 	fmt.Println(confstr)
 	if err := WriteConfig([]byte(confstr)); err != nil {

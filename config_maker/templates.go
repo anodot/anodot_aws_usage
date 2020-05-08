@@ -11,8 +11,9 @@ type Template interface {
 }
 
 type MetricTemplate struct {
-	Metrictype string
-	Template   Template
+	Metrictype  string
+	Template    Template
+	ServiceName string
 }
 
 type CustomMetricTemplate struct {
