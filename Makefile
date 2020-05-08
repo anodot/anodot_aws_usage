@@ -1,7 +1,7 @@
 BUILD_IMAGE := usage_lambda
 BUILD_IMAGE_VERSION := 1.0
 
-CONTAINER_BASH := docker run --workdir /output -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION)
+CONTAINER_BASH := docker run --workdir /output -e GOOS -e GOARCH -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION)
 GO :=  $(CONTAINER_BASH) go
 
 TERRAFORM_CMD := docker run -e AWS_DEFAULT_REGION  -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID --workdir /output/terraform/ -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION) terraform 
@@ -16,6 +16,7 @@ GOLINT_VERSION:=1.23.1
 BUILD_FLAGS = GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOFLAGS=$(GOFLAGS)
 APPLICATION_NAME := usage_lambda
 LAMBDA_ARCHIVE := usage_lambda.zip
+CONFIG_MAKER := config_creator
 
 GREEN := \033[0;32m
 NC := \033[0m
@@ -29,9 +30,11 @@ clean-image:
 
 build: clean build-image build-code
 
+create-config: build-config-creator run-config-creator
 clean:
 	@rm -rf $(APPLICATION_NAME)
 	@rm -rf $(LAMBDA_ARCHIVE)
+	@rm  -rf $(CONFIG_MAKER)
 
 build-image:
 	#docker build  -t $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) src/
@@ -40,6 +43,12 @@ build-image:
 build-code:
 	@echo ">> building binaries with version $(VERSION)"
 	$(BUILD_FLAGS) $(GO)  build -o $(APPLICATION_NAME) 
+
+build-config-creator:
+	 uname | grep  arwin && GOOS=darwin GOARCH=amd64 $(GO)  build -o $(CONFIG_MAKER) config_maker/*go || $(GO)  build -o $(CONFIG_MAKER) config_maker/*go
+
+run-config-creator:
+	./config_creator
 
 create-archive:
 	$(CONTAINER_BASH) zip $(LAMBDA_ARCHIVE) $(APPLICATION_NAME)
