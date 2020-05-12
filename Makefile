@@ -16,11 +16,18 @@ GOLINT_VERSION:=1.23.1
 BUILD_FLAGS = GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOFLAGS=$(GOFLAGS)
 APPLICATION_NAME := usage_lambda
 LAMBDA_ARCHIVE := usage_lambda.zip
+
 CONFIG_MAKER := config_creator
+BUILD_CONFIG := uname | grep  arwin && GOOS=darwin GOARCH=amd64 $(GO)  build -o $(CONFIG_MAKER) config_maker/*go || $(GO)  build -o $(CONFIG_MAKER) config_maker/*go
+RUN_CONFIG := ./config_creator
+BUILD_AND_RUN := "$(BUILD_CONFIG)  $(RUN_CONFIG)"
 
 GREEN := \033[0;32m
 NC := \033[0m
 CYAN := \033[0;36m
+
+ispresent := $(shell ls config_creator 2>/dev/null | grep config_creator)
+create_config := $(if $("$(wildcard $(CONFIG_MAKER))"),$(BUILD_CONFIG),$(RUN_CONFIG))
 
 deploy: build create-archive copy_to_s3 copy_config_s3
 create-function: terraform-init terraform-plan terraform-apply
@@ -30,11 +37,10 @@ clean-image:
 
 build: clean build-image build-code
 
-create-config: build-config-creator run-config-creator
 clean:
 	@rm -rf $(APPLICATION_NAME)
 	@rm -rf $(LAMBDA_ARCHIVE)
-	@rm  -rf $(CONFIG_MAKER)
+	@rm -rf $(CONFIG_MAKER)
 
 build-image:
 	#docker build  -t $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) src/
@@ -44,11 +50,11 @@ build-code:
 	@echo ">> building binaries with version $(VERSION)"
 	$(BUILD_FLAGS) $(GO)  build -o $(APPLICATION_NAME) 
 
-build-config-creator:
-	 uname | grep  arwin && GOOS=darwin GOARCH=amd64 $(GO)  build -o $(CONFIG_MAKER) config_maker/*go || $(GO)  build -o $(CONFIG_MAKER) config_maker/*go
-
-run-config-creator:
-	./config_creator
+create-config:
+ifeq ("$(wildcard $(CONFIG_MAKER))","")
+		$(BUILD_CONFIG)
+endif
+		$(RUN_CONFIG)
 
 create-archive:
 	$(CONTAINER_BASH) zip $(LAMBDA_ARCHIVE) $(APPLICATION_NAME)
