@@ -189,13 +189,21 @@ func ListToString(list []string) string {
 func ChooseMetrics(service string) ([]Metric, error) {
 	metrics_ := make([]Metric, 0)
 	metricsname := make([]string, 0)
+	metricmsg := "What metrics do you need"
 	for {
-		metric, err := CustomSelect("Metric", metrics[service])
+		metric, err := CustomSelect(metricmsg, metrics[service])
 		if err != nil {
 			return make([]Metric, 0), err
 		}
+		metricmsg = "What metrics do you need"
+
 		if metric == "Done" {
-			break
+			if len(metrics_) > 0 {
+				break
+			} else {
+				metricmsg = "You didn't choose any metrics. What metrics do you need"
+				continue
+			}
 		}
 
 		metricsname = append(metricsname, metric)
@@ -221,14 +229,21 @@ func removeCloudfront(list []string) []string {
 func ChoseService(region string) ([]Service, error) {
 	chosenservices := make([]Service, 0)
 	servicenames := make([]string, 0)
+	selectmsg := "What services do you need"
 	for {
-		service, err := CustomSelect("Services", services)
+		service, err := CustomSelect(selectmsg, services)
 		if err != nil {
 			fmt.Printf("Prompt failed %v\n", err)
 		}
-
+		selectmsg = "What services do you need"
 		if service == "Done" {
-			break
+			if len(chosenservices) > 0 {
+				break
+			} else {
+				selectmsg = "You didn't choose any services. What services do you need"
+				continue
+			}
+
 		}
 
 		// If Cloudfront has been chosen remove it from service list because it global service
@@ -267,7 +282,7 @@ func ChoseRegion() (string, error) {
 }
 
 func WriteConfig(data []byte) error {
-	fo, err := os.Create("output.yaml")
+	fo, err := os.Create("cloudwatch_metrics.yaml")
 	if err != nil {
 		panic(err)
 	}
