@@ -74,6 +74,13 @@ Please notice that for each region a separate function will be created (it will 
 
 3. Update **cloudwatch_metrics.yaml** with regions and metrics you need to push. 
 
+Or just run 
+```
+make create-config
+```
+This command will show you command line menu for generation default config. 
+
+
 4. Deploy the lambda function into AWS
 
 ```bash
