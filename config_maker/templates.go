@@ -21,7 +21,7 @@ type CustomMetricTemplate struct {
 }
 
 func (ct CustomMetricTemplate) Render() (string, error) {
-	return "- " + ct.Metricname, nil
+	return "    - " + ct.Metricname, nil
 }
 
 type CloudwatchMetricTemplate struct {
@@ -37,7 +37,7 @@ func (ct CloudwatchMetricTemplate) Render() (string, error) {
 	var b bytes.Buffer
 	//foo := bufio.NewWriter(&b)
 
-	var cloudwatchmetric = "- Name: {{ .Metricname}}\n      Id: {{ .Id}}\n      Namespace: {{.Namespace}}\n      Period: {{.Period}}\n      Unit: {{.Unit}}\n      Stat: {{.Stat}}"
+	var cloudwatchmetric = "    - Name: {{ .Metricname}}\n        Id: {{ .Id}}\n        Namespace: {{.Namespace}}\n        Period: {{.Period}}\n        Unit: {{.Unit}}\n        Stat: {{.Stat}}"
 	t, err := template.New("cloudwatchmetric").Parse(cloudwatchmetric)
 	if err != nil {
 		return "", err
@@ -102,7 +102,7 @@ func RenderRegion(services []string, region string) (string, error) {
 		services,
 		region,
 	}
-	regiontemplate := "{{- .Region -}}:\t{{ range .Services}} \n\t{{.}} \n\t{{end}}"
+	regiontemplate := "{{- .Region -}}:{{ range .Services}} \n  {{.}} \n  {{end}}"
 	t, err := template.New("regiontemplate").Parse(regiontemplate)
 	if err != nil {
 		return "", err
@@ -124,11 +124,11 @@ func RenderServices(name string, custom_metrics []string, cloudwatch_metrics []s
 	}
 	servicetemplate := "{{ .Name}}:"
 	if len(data.CloudwatchMetrics) > 0 {
-		servicetemplate = servicetemplate + "\n    CloudwatchMetrics:    {{ range .CloudwatchMetrics }}\n    {{.}}{{- end -}}"
+		servicetemplate = servicetemplate + "\n    CloudwatchMetrics:{{ range .CloudwatchMetrics }}\n  {{.}}{{- end -}}"
 	}
 
 	if len(data.CustomMetrics) > 0 {
-		servicetemplate = servicetemplate + "\n    CustomMetrics:    {{ range .CustomMetrics}}\n    {{.}}{{- end -}}"
+		servicetemplate = servicetemplate + "\n    CustomMetrics:{{ range .CustomMetrics}}\n  {{.}}{{- end -}}"
 	}
 
 	t, err := template.New("servicetemplate").Parse(servicetemplate)
