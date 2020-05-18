@@ -19,22 +19,25 @@ Run "make help" to see all available tasks:
 ```bash
 make help
  Available tasks:
-	 build-image     -- build image usage_lambda:1.0 with all necessary dependencies for lambda function build and lamdba function creation
-	 build           -- will build source code. Lambda function binary name usage_lambda
-	 create-archive  -- will create archive with binary ready to upload on S3
-	 clean           -- will delete archive and binary
+	 make build-image     -- build image usage_lambda:1.0 with all necessary dependencies for lambda function build and lamdba function creation
+	 make build-code      -- will build source code. Lambda function binary name usage_lambda
+	 make build           -- will run clean build-image and build-code
+	 make create-archive  -- will create archive with binary ready to upload on S3
+	 make clean           -- will delete archive and binary
 	 make copy_to_s3 LAMBDA_S3=your-bucket-name           -- copy lambda archive to s3
 	 make copy_config_s3 LAMBDA_S3=your-bucket-name       -- copy config file to s3
-	 clean-image     -- will delete usage_lambda image
-	 deploy          -- will run build-image, build, build-image, copy_to_s3
+	 make clean-image     -- will delete usage_lambda image
+	 make deploy LAMBDA_S3=your-bucket-name          -- will run build-image, build, build-image, copy_to_s3
+
+	 make create-config          -- will run command line menu to help build a new config file
 
  Terraform related tasks:
-	 terraform-init     -- will initialize terraform providers and modules
-	 terraform-plan     -- will create an execution plan. Shows what will done. What services will be created
-	 terraform-apply    -- will apply an execution plan.
-	 terraform-plan-destroy    -- will create plan of destroying lambda function.
-	 terraform-apply-destroy   -- will destroy lambda functions.
-	 create-function           -- will run  terraform-init, terraform-plan, terraform-apply .
+	 make terraform-init     -- will initialize terraform providers and modules
+	 make terraform-plan     -- will create an execution plan. Shows what will done. What services will be created
+	 make terraform-apply    -- will apply an execution plan.
+	 make terraform-plan-destroy    -- will create plan of destroying lambda function.
+	 make terraform-apply-destroy   -- will destroy lambda functions.
+	 make create-function           -- will run  terraform-init, terraform-plan, terraform-apply .
 ``` 
 
 ## Installation steps
