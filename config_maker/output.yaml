@@ -1,0 +1,42 @@
+
+us-east-1:	 
+	Cloudfront:
+    CloudwatchMetrics:    
+    - Name: BytesDownloaded
+      Id: test1
+      Namespace: AWS/CloudFront
+      Period: 3600
+      Unit: None
+      Stat: Average
+    - Name: TotalErrorRate
+      Id: test1
+      Namespace: AWS/CloudFront
+      Period: 3600
+      Unit: None
+      Stat: Average 
+	
+us-east-2:	 
+	EC2:
+    CustomMetrics:    
+    - CoreCount
+    - VCpuCount 
+	 
+	EBS:
+    CustomMetrics:    
+    - Size 
+	 
+	S3:
+    CloudwatchMetrics:    
+    - Name: BucketSizeBytes
+      Id: test1
+      Namespace: AWS/S3
+      Period: 3600
+      Unit: Bytes
+      Stat: Average
+    - Name: NumberOfObjects
+      Id: test1
+      Namespace: AWS/S3
+      Period: 3600
+      Unit: Bytes
+      Stat: Average 
+	
