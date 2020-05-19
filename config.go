@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"os"
 
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,7 +13,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"log"
-	"os"
 )
 
 type Tag struct {
@@ -51,6 +50,7 @@ func (mr *MonitoredResource) String() string {
 }
 
 type Config struct {
+	LambdaBucket   string
 	AccountId      string
 	Region         string
 	AnodotUrl      string
@@ -59,7 +59,7 @@ type Config struct {
 }
 
 func (c *Config) String() string {
-	s := fmt.Sprintf("Region: %s\nAnodot URL:%s\nAonodot Token%s\nAccountId: %s\n", c.Region, c.AnodotUrl, c.AnodotToken, c.AccountId)
+	s := fmt.Sprintf("Region: %s\nAnodot URL: %s\nAonodot Token: %s\nAccountId: %s\n", c.Region, c.AnodotUrl, c.AnodotToken, c.AccountId)
 	for region, rconf := range c.RegionsConfigs {
 		s = s + fmt.Sprintf("Region %s has following config: \n", region)
 		s = s + rconf.String()
@@ -225,6 +225,21 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	for region, rconfig := range config {
+		if region == "anodotUrl" {
+			c.AnodotUrl = rconfig.(string)
+			continue
+		}
+
+		if region == "token" {
+			c.AnodotToken = rconfig.(string)
+			continue
+		}
+
+		if region == "accountName" {
+			c.AccountId = rconfig.(string)
+			continue
+		}
+
 		resources := make([]*MonitoredResource, 0)
 		conf := rconfig.(map[interface{}]interface{})
 
@@ -265,8 +280,6 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		c.RegionsConfigs = regionconfigs
 	}
 
-	log.Printf("Input config:")
-	fmt.Print(c.String())
 	return nil
 }
 
@@ -275,17 +288,11 @@ func GetConfig() (Config, error) {
 	token := os.Getenv("token")
 	region := os.Getenv("region")
 	lambda_bucket := os.Getenv("lambda_bucket")
-	accountId := os.Getenv("accountId")
+	accountId := os.Getenv("accountName")
+	c := Config{}
 
-	if anodotUrl == "" || token == "" || region == "" || lambda_bucket == "" {
-		return Config{}, errors.New("Need to define env vars anodotUrl, token, region, lambda_bucket")
-	}
-
-	c := Config{
-		AccountId:   accountId,
-		AnodotUrl:   anodotUrl,
-		AnodotToken: token,
-		Region:      region,
+	if region == "" || lambda_bucket == "" {
+		return Config{}, fmt.Errorf("Please provide region and lambda_bucket (lambda s3 bucket) as lambda functions env var")
 	}
 
 	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
@@ -305,6 +312,25 @@ func GetConfig() (Config, error) {
 		fmt.Printf("error: %v\n", err)
 		return c, err
 	}
+
+	if anodotUrl != "" {
+		c.AnodotUrl = anodotUrl
+	}
+
+	if token != "" {
+		c.AnodotToken = token
+	}
+
+	if accountId != "" {
+		c.AccountId = accountId
+	}
+
+	if c.AnodotToken == "" || c.AnodotUrl == "" {
+		return c, fmt.Errorf("Too few arguments for lambda function. Please set token, anodotUrl with config file or with lambda env vars.")
+	}
+
+	log.Printf("Input config:")
+	fmt.Print(c.String())
 
 	return c, nil
 }
