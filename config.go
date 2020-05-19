@@ -294,7 +294,7 @@ func GetConfig() (Config, error) {
 	if region == "" || lambda_bucket == "" {
 		return Config{}, fmt.Errorf("Please provide region and lambda_bucket (lambda s3 bucket) as lambda functions env var")
 	}
-
+	c.Region = region
 	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
