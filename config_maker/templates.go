@@ -47,9 +47,9 @@ func (ct CloudwatchMetricTemplate) Render() (string, error) {
 	return string(b.Bytes()), nil
 }
 
-func RenderConfig(configs []RegionConfig) string {
+func RenderConfig(params Params, configs []RegionConfig) string {
 	renderedRegions := make([]string, 0)
-	config := ""
+
 	for _, c := range configs {
 		renderedServices := make([]string, 0)
 		for _, s := range c.services {
@@ -87,9 +87,13 @@ func RenderConfig(configs []RegionConfig) string {
 		renderedRegions = append(renderedRegions, regionstr)
 	}
 
+	config := "anodotUrl: " + params.anodotUrl + "\n" + "token: " +
+		params.token + "\n" + "accountName: " + params.accountName
+
 	for _, r := range renderedRegions {
 		config = config + "\n" + r
 	}
+
 	return config
 }
 

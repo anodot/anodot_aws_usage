@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/manifoldco/promptui"
 )
@@ -55,6 +56,12 @@ type RegionConfig struct {
 	services []Service
 }
 
+type Params struct {
+	token       string
+	anodotUrl   string
+	accountName string
+}
+
 func GetAllMetricsAllServices() []Service {
 	services := make([]Service, 0)
 	for s, m := range metrics {
@@ -68,6 +75,27 @@ func GetAllMetricsAllServices() []Service {
 		services = append(services, Service{name: s, metrics: metrics_})
 	}
 	return services
+}
+
+func ValidateUrl(input string) error {
+	if !strings.HasPrefix(input, "http") {
+		return fmt.Errorf("Please provide correct url")
+	}
+	return nil
+}
+
+func ValidateToken(input string) error {
+	if len(input) < 2 {
+		return fmt.Errorf("Token len shoud be > 1")
+	}
+	return nil
+}
+
+func ValidateAccountName(input string) error {
+	if len(input) < 2 {
+		return fmt.Errorf("Account name len shoud be > 1")
+	}
+	return nil
 }
 
 func ValidateRegion(input string) error {
@@ -273,9 +301,35 @@ func ChoseService(region string) ([]Service, error) {
 	return removeDuplicatesService(chosenservices), nil
 }
 
-func ChoseRegion() (string, error) {
-	result, err := CustomPrompt(ValidateRegion, "Region")
+func ChoseParams() (Params, error) {
+	p := Params{}
+	url, err := CustomPrompt(ValidateUrl, "Anodot URL")
 	if err != nil {
+		return p, err
+	}
+	p.anodotUrl = url
+
+	token, err := CustomPrompt(ValidateToken, "Anodot Token")
+	if err != nil {
+		return p, err
+	}
+	p.token = token
+
+	accountName, err := CustomPrompt(ValidateAccountName, "Account name")
+	if err != nil {
+		return p, err
+	}
+
+	p.accountName = accountName
+	return p, nil
+}
+
+func ChoseRegion() (string, error) {
+	result, err := CustomSelect("Choose your region", regions)
+	if err != nil {
+		return "", err
+	}
+	if ValidateRegion(result) != nil {
 		return "", err
 	}
 	selectedRegions = append(selectedRegions, result)
@@ -302,9 +356,14 @@ func WriteConfig(data []byte) error {
 
 func main() {
 	configs := make([]RegionConfig, 0)
+	params, err := ChoseParams()
+
+	if err != nil {
+		fmt.Printf("Something went wrong %v", err)
+		os.Exit(3)
+	}
 
 	for {
-		fmt.Println("Hello please add region you need to monitor: ")
 		region, err := ChoseRegion()
 		if err != nil {
 			fmt.Printf("Error occured %v", err)
@@ -334,8 +393,9 @@ func main() {
 		}
 	}
 
-	confstr := RenderConfig(configs)
+	confstr := RenderConfig(params, configs)
 	fmt.Println(confstr)
+
 	if err := WriteConfig([]byte(confstr)); err != nil {
 		fmt.Println(err)
 		os.Exit(127)
