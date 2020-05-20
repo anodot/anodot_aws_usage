@@ -13,9 +13,12 @@ const red = "\u001b[31m"
 const reset = "\u001b[0m"
 
 var metrics = map[string][]string{
-	"EC2":        []string{"CoreCount", "VCpuCount", "Done"},
-	"EBS":        []string{"Size", "Done"},
-	"S3":         []string{"BucketSizeBytes", "NumberOfObjects", "Done"},
+	"EC2": []string{"CoreCount", "VCpuCount", "Done"},
+	"EBS": []string{"Size", "Done"},
+	"S3": []string{"BucketSizeBytes", "NumberOfObjects", "AllRequests", "GetRequests",
+		"PutRequests", "DeleteRequests", "HeadRequests",
+		"SelectRequests", "ListRequests", "Done"},
+
 	"Cloudfront": []string{"BytesDownloaded", "Requests", "TotalErrorRate", "Done"},
 	"ELB":        []string{"RequestCount", "EstimatedProcessedBytes", "Done"},
 }
@@ -255,6 +258,16 @@ func removeCloudfront(list []string) []string {
 	return services
 }
 
+func removeUsedRegion(regions []string, region string) []string {
+	regions_ := make([]string, 0)
+	for _, r := range regions {
+		if r != region {
+			regions_ = append(regions_, r)
+		}
+	}
+	return regions_
+}
+
 func ChoseService(region string) ([]Service, error) {
 	chosenservices := make([]Service, 0)
 	servicenames := make([]string, 0)
@@ -333,6 +346,8 @@ func ChoseRegion() (string, error) {
 		return "", err
 	}
 	selectedRegions = append(selectedRegions, result)
+	regions = removeUsedRegion(regions, result)
+
 	return result, nil
 }
 
