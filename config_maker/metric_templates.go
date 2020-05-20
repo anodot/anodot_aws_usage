@@ -30,7 +30,7 @@ var metric_templates = map[string]MetricTemplate{
 	},
 	"BucketSizeBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "S3", Template: CloudwatchMetricTemplate{
 		Metricname: "BucketSizeBytes",
-		Period:     "3600",
+		Period:     "86400",
 		Unit:       "Bytes",
 		Namespace:  "AWS/S3",
 		Id:         "test1",
@@ -39,11 +39,11 @@ var metric_templates = map[string]MetricTemplate{
 	},
 	"NumberOfObjects": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "S3", Template: CloudwatchMetricTemplate{
 		Metricname: "NumberOfObjects",
-		Period:     "3600",
-		Unit:       "Bytes",
+		Period:     "86400",
+		Unit:       "Count",
 		Namespace:  "AWS/S3",
 		Id:         "test1",
-		Stat:       "Average",
+		Stat:       "Sum",
 	},
 	},
 	"AllRequests": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "S3", Template: CloudwatchMetricTemplate{
