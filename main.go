@@ -113,7 +113,7 @@ func GetS3Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch
 	dataInputs := NewGetMetricDataInput(metrics)
 
 	for _, mi := range dataInputs {
-		mi.SetStartTime(time.Now().Add(-36 * time.Hour))
+		mi.SetStartTime(time.Now().Add(-48 * time.Hour))
 	}
 
 	metricdataresults, err := cloudWatchFetcher.FetchMetrics(dataInputs)
@@ -122,21 +122,16 @@ func GetS3Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch
 		return anodotMetrics, err
 	}
 
-	var timestemps []*time.Time
+	now := time.Now()
 	for _, m := range metrics {
 		for _, mr := range metricdataresults {
 			if *mr.Id == m.MStat.Id {
 				s := m.Resource.(S3)
-
-				if len(mr.Values) == 1 {
-					now := time.Now()
-					timestemps = []*time.Time{
-						&now,
-					}
-				} else {
-					timestemps = mr.Timestamps
+				if len(mr.Values) > 0 {
+					timestemps := []*time.Time{&now}
+					values := []*float64{mr.Values[0]}
+					anodotMetrics = append(anodotMetrics, GetAnodotMetric(m.MStat.Name, timestemps, values, GetS3MetricProperties(s))...)
 				}
-				anodotMetrics = append(anodotMetrics, GetAnodotMetric(m.MStat.Name, timestemps, mr.Values, GetS3MetricProperties(s))...)
 			}
 		}
 	}
