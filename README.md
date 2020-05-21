@@ -5,6 +5,7 @@
 - EBS
 - S3
 - ELB 
+- NatGateway
 
 ## Installation and package build
 ---
