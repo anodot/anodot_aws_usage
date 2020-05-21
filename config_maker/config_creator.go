@@ -21,8 +21,9 @@ var metrics = map[string][]string{
 
 	"Cloudfront": []string{"BytesDownloaded", "Requests", "TotalErrorRate", "Done"},
 	"ELB":        []string{"RequestCount", "EstimatedProcessedBytes", "Done"},
+	"NatGateway": []string{"BytesOutToSource", "BytesInFromSource", "BytesInFromDestination", "ActiveConnectionCount", "ConnectionEstablishedCount", "Done"},
 }
-var services = []string{"EC2", "EBS", "S3", "Cloudfront", "ELB", "Default (All services above)", "Done"}
+var services = []string{"EC2", "EBS", "S3", "Cloudfront", "NatGateway", "ELB", "Default (All services above)", "Done"}
 
 var regions = []string{
 	"eu-north-1",
