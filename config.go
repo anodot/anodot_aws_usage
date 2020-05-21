@@ -92,6 +92,8 @@ func GetMetricFunction(rname string) (MetricFunction, error) {
 		return GetS3Metrics, nil
 	case "Cloudfront":
 		return GetCloudfrontMetrics, nil
+	case "NatGateway":
+		return GetNatGatewayMetrics, nil
 	default:
 		return nil, fmt.Errorf("Unknown resource type: %s", rname)
 	}
@@ -295,6 +297,7 @@ func GetConfig() (Config, error) {
 		return Config{}, fmt.Errorf("Please provide region and lambda_bucket (lambda s3 bucket) as lambda functions env var")
 	}
 	c.Region = region
+
 	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
@@ -303,13 +306,13 @@ func GetConfig() (Config, error) {
 
 	fileData, err := GetConfigFromS3(lambda_bucket, region)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("Can not get config from s3 : %v\n", err)
 		return c, err
 	}
 
 	err = yaml.Unmarshal([]byte(fileData), &c)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("Can not Unmarshal config : %v\n", err)
 		return c, err
 	}
 
@@ -336,8 +339,8 @@ func GetConfig() (Config, error) {
 }
 
 func GetConfigFromS3(bucket_name, region string) ([]byte, error) {
-	//session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
-	session := session.New()
+	session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	//session := session.New()
 	svc := s3.New(session)
 
 	input := &s3.GetObjectInput{

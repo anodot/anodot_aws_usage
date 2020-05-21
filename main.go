@@ -177,6 +177,40 @@ func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 	return anodotMetrics, nil
 }
 
+func GetNatGatewayMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+	gateways, err := DescribeNatGateways(session)
+	if err != nil {
+		return anodotMetrics, err
+	}
+	metrics, err := GetNatGatewayCloudwatchMetrics(resource, gateways)
+	if err != nil {
+		return anodotMetrics, err
+	}
+	if len(metrics) > 0 {
+		metricdatainput := NewGetMetricDataInput(metrics)
+		metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+		if err != nil {
+			return anodotMetrics, err
+		}
+
+		for _, m := range metrics {
+			for _, mr := range metricdataresults {
+				if *mr.Id == m.MStat.Id {
+					n := m.Resource.(NatGateway)
+					anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetNatGatewayMetricProperties(n))
+					anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
+
+				}
+			}
+		}
+	}
+	return anodotMetrics, nil
+}
+
 func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
 	instanceFetcher := CreateEC2Fetcher(session)
