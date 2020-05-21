@@ -339,8 +339,8 @@ func GetConfig() (Config, error) {
 }
 
 func GetConfigFromS3(bucket_name, region string) ([]byte, error) {
-	session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
-	//session := session.New()
+	//session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	session := session.New()
 	svc := s3.New(session)
 
 	input := &s3.GetObjectInput{
