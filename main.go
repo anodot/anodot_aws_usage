@@ -23,6 +23,61 @@ const metricVersion string = "5"
 
 var accountId string
 
+func GetEfsMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+	efss, err := DesribeFilesystems(ses)
+	if err != nil {
+		log.Printf("Cloud not get Efs: %v", err)
+		return anodotMetrics, nil
+	}
+	log.Printf("Found %d Elastic file systems", len(efss))
+	metrics, err := GetEfsCloudwatchMetrics(resource, efss)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return anodotMetrics, err
+	}
+
+	metricdatainput := NewGetMetricDataInput(metrics)
+	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+	if err != nil {
+		log.Printf("Error during EFS metrics processing: %v", err)
+		return anodotMetrics, err
+	}
+
+	for _, m := range metrics {
+		for _, mr := range metricdataresults {
+			if *mr.Id == m.MStat.Id {
+				efs := m.Resource.(Efs)
+				anodot_efs_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetEfsMetricProperties(efs))
+				anodotMetrics = append(anodotMetrics, anodot_efs_metrics...)
+			}
+		}
+	}
+
+	if len(resource.CustomMetrics) > 0 {
+		for _, cm := range resource.CustomMetrics {
+			if cm == "Size" {
+				log.Printf("Processing EFS custom metric Size\n")
+				anodotMetrics = append(anodotMetrics, getEfsSizetMetric(efss)...)
+			}
+			if cm == "Size_Standart" {
+				log.Printf("Processing EFS custom metric Size_Standart\n")
+				anodotMetrics = append(anodotMetrics, getEfsStandartSizetMetric(efss)...)
+			}
+			if cm == "Size_Infrequent" {
+				log.Printf("Processing EFS custom metric Size_Infrequent\n")
+				anodotMetrics = append(anodotMetrics, getEfsInfrequentSizeMetric(efss)...)
+			}
+		}
+	}
+
+	return anodotMetrics, nil
+}
+
 func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	if resource.CustomRegion != "" {
 		cloudwatchSvc = cloudwatch.New(session.Must(session.NewSession(&aws.Config{Region: aws.String(resource.CustomRegion)})))

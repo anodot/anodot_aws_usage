@@ -94,6 +94,8 @@ func GetMetricFunction(rname string) (MetricFunction, error) {
 		return GetCloudfrontMetrics, nil
 	case "NatGateway":
 		return GetNatGatewayMetrics, nil
+	case "Efs":
+		return GetEfsMetrics, nil
 	default:
 		return nil, fmt.Errorf("Unknown resource type: %s", rname)
 	}
