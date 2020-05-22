@@ -53,8 +53,11 @@ func DesribeFilesystems(session *session.Session) ([]Efs, error) {
 func GetEfsMetricProperties(efs Efs) map[string]string {
 	properties := map[string]string{
 		"service":      "efs",
-		"Name":         *efs.Name,
 		"FileSystemId": *efs.FileSystemId,
+	}
+
+	if efs.Name != nil {
+		properties["Name"] = *efs.Name
 	}
 
 	for _, v := range efs.Tags {
