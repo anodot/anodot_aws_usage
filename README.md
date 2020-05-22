@@ -6,6 +6,7 @@
 - S3
 - ELB 
 - NatGateway
+- Efs
 
 ## Installation and package build
 ---
@@ -128,6 +129,11 @@ A custom metric is a metric calculated directly by the lambda function (not fetc
 EBS has custom metric: Size
 
 EC2 has: CoreCount and VCpuCount - cores count with hyperthreading 
+
+Efs has: 
+- Size_All - The latest known metered size (in bytes) of data stored in the file system.
+- Size_Infrequent - The latest known metered size (in bytes) of data stored in the Infrequent Access storage class.
+- Size_Standart - The latest known metered size (in bytes) of data stored in the Standard storage class
 
 ### How do I configure which metrics are pushed per region ?
 Each region should have a separate section in cloudwatch_metrics.yaml file with list of metrics to be fetched: 
