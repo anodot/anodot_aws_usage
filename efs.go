@@ -101,7 +101,7 @@ func GetEfsCloudwatchMetrics(resource *MonitoredResource, efss []Efs) ([]MetricT
 func getEfsSizetMetric(efss []Efs) []metricsAnodot.Anodot20Metric {
 	metricList := make([]metricsAnodot.Anodot20Metric, 0)
 	for _, efs := range efss {
-		metricList = append(metricList, addAnodotMetric(efs, "Size", *efs.Size))
+		metricList = append(metricList, addAnodotMetric(efs, "Size_All", *efs.Size))
 	}
 	return metricList
 }

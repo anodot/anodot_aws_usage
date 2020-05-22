@@ -12,18 +12,23 @@ const green = "\u001b[32m"
 const red = "\u001b[31m"
 const reset = "\u001b[0m"
 
+var metricsButtons = []string{"Default (All metrics above)", "Done"}
+
 var metrics = map[string][]string{
-	"EC2": []string{"CoreCount", "VCpuCount", "Done"},
+	"EC2": []string{"CoreCount", "VCpuCount"},
 	"EBS": []string{"Size", "Done"},
 	"S3": []string{"BucketSizeBytes", "NumberOfObjects", "AllRequests", "GetRequests",
 		"PutRequests", "DeleteRequests", "HeadRequests",
-		"SelectRequests", "ListRequests", "Done"},
-
-	"Cloudfront": []string{"BytesDownloaded", "Requests", "TotalErrorRate", "Done"},
-	"ELB":        []string{"RequestCount", "EstimatedProcessedBytes", "Done"},
-	"NatGateway": []string{"BytesOutToSource", "BytesInFromSource", "BytesInFromDestination", "ActiveConnectionCount", "ConnectionEstablishedCount", "Done"},
+		"SelectRequests", "ListRequests"},
+	"Cloudfront": []string{"BytesDownloaded", "Requests", "TotalErrorRate"},
+	"ELB":        []string{"RequestCount", "EstimatedProcessedBytes"},
+	"NatGateway": []string{"BytesOutToSource", "BytesInFromSource",
+		"BytesInFromDestination", "ActiveConnectionCount",
+		"ConnectionEstablishedCount"},
+	"Efs": []string{"Size_All", "Size_Infrequent", "Size_Standart", "DataWriteIOBytes", "DataReadIOBytes"},
 }
-var services = []string{"EC2", "EBS", "S3", "Cloudfront", "NatGateway", "ELB", "Default (All services above)", "Done"}
+
+var services = []string{"EC2", "EBS", "S3", "Cloudfront", "NatGateway", "ELB", "Efs", "Default (All services above)", "Done"}
 
 var regions = []string{
 	"eu-north-1",
@@ -224,7 +229,7 @@ func ChooseMetrics(service string) ([]Metric, error) {
 	metricsname := make([]string, 0)
 	metricmsg := "What metrics do you need"
 	for {
-		metric, err := CustomSelect(metricmsg, metrics[service])
+		metric, err := CustomSelect(metricmsg, append(metrics[service], metricsButtons...))
 		if err != nil {
 			return make([]Metric, 0), err
 		}
@@ -237,6 +242,18 @@ func ChooseMetrics(service string) ([]Metric, error) {
 				metricmsg = "You didn't choose any metrics. What metrics do you need"
 				continue
 			}
+		}
+
+		if metric == "Default (All metrics above)" {
+
+			metrics_ = make([]Metric, 0)
+			for _, m := range metrics[service] {
+				metrics_ = append(metrics_, Metric{name: m})
+			}
+			fmt.Printf("You chose next metrics for service: %s", service)
+			fmt.Println(ListToString(metrics[service]))
+
+			return metrics_, nil
 		}
 
 		metricsname = append(metricsname, metric)

@@ -128,7 +128,7 @@ func RenderServices(name string, custom_metrics []string, cloudwatch_metrics []s
 	}
 	servicetemplate := "{{ .Name}}:"
 	if len(data.CloudwatchMetrics) > 0 {
-		servicetemplate = servicetemplate + "\n    CloudWatchMetrics:{{ range .CloudwatchMetrics }}\n  {{.}}{{- end -}}"
+		servicetemplate = servicetemplate + "\n    CloudWatchMetrics:{{ range .CloudwatchMetrics }}\n  {{.}}{{- end }}"
 	}
 
 	if len(data.CustomMetrics) > 0 {

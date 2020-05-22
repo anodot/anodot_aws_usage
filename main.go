@@ -60,7 +60,7 @@ func GetEfsMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, r
 
 	if len(resource.CustomMetrics) > 0 {
 		for _, cm := range resource.CustomMetrics {
-			if cm == "Size" {
+			if cm == "Size_All" {
 				log.Printf("Processing EFS custom metric Size\n")
 				anodotMetrics = append(anodotMetrics, getEfsSizetMetric(efss)...)
 			}

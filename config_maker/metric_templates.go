@@ -184,4 +184,34 @@ var metric_templates = map[string]MetricTemplate{
 		Metricname: "Size",
 	},
 	},
+	"Size_All": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "Efs", Template: CustomMetricTemplate{
+		Metricname: "Size_All",
+	},
+	},
+	"Size_Infrequent": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "Efs", Template: CustomMetricTemplate{
+		Metricname: "Size_Infrequent",
+	},
+	},
+	"Size_Standart": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "Efs", Template: CustomMetricTemplate{
+		Metricname: "Size_Standart",
+	},
+	},
+	"DataWriteIOBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "Efs", Template: CloudwatchMetricTemplate{
+		Metricname: "DataWriteIOBytes",
+		Period:     "3600",
+		Unit:       "Bytes",
+		Namespace:  "AWS/EFS",
+		Id:         "test1",
+		Stat:       "Average",
+	},
+	},
+	"DataReadIOBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "Efs", Template: CloudwatchMetricTemplate{
+		Metricname: "DataReadIOBytes",
+		Period:     "3600",
+		Unit:       "Bytes",
+		Namespace:  "AWS/EFS",
+		Id:         "test1",
+		Stat:       "Average",
+	},
+	},
 }
