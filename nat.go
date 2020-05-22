@@ -59,11 +59,12 @@ func DescribeNatGateways(session *session.Session) ([]NatGateway, error) {
 
 func GetNatGatewayMetricProperties(gateway NatGateway) map[string]string {
 	properties := map[string]string{
-		"service":      "natgateway",
-		"NatGatewayId": *gateway.NatGatewayId,
-		"VpcId":        *gateway.VpcId,
-		"SubnetId":     *gateway.SubnetId,
-		"State":        *gateway.State,
+		"service":          "natgateway",
+		"NatGatewayId":     *gateway.NatGatewayId,
+		"VpcId":            *gateway.VpcId,
+		"SubnetId":         *gateway.SubnetId,
+		"State":            *gateway.State,
+		"anodot-collector": "aws",
 	}
 
 	for _, v := range gateway.Tags {
