@@ -23,3 +23,8 @@ variable "accountId" {
     description = "Custom Id in order to distinguish different AWS accounts"
     default = ""
 }
+
+variable "function_id" {
+    type = string
+    description = "Custom string which will be used like a prefix of the lambda function name"
+}

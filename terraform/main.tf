@@ -1,5 +1,5 @@
 resource "aws_iam_role" "usage_lambda_role" {
-  name = "usage_lambda_role"
+  name = "${var.function_id}_role"
 
   assume_role_policy = <<EOF
 {
@@ -19,7 +19,7 @@ EOF
 }
 
 resource "aws_iam_policy" "usage_lambda_policy" {
-  name        = "usage_lambda_policy"
+  name        = "${var.function_id}_policy"
   description = "A policy for lambda usage function"
 
   policy = <<EOF
@@ -37,6 +37,7 @@ resource "aws_iam_policy" "usage_lambda_policy" {
         "cloudwatch:ListMetrics",
         "elasticloadbalancing:DescribeLoadBalancers",
         "elasticloadbalancing:DescribeTags",
+	      "elasticfilesystem:DescribeFileSystems",
         "cloudfront:ListDistributions",
         "s3:ListAllMyBuckets",
         "s3:ListBucket",
@@ -58,7 +59,7 @@ resource "aws_iam_role_policy_attachment" "usage-lambda-policy-attachment" {
 resource "aws_lambda_function" "usage-lambda" {
   count = length(var.regions)
 
-  function_name = "${var.regions[count.index]}-usage-lambda"
+  function_name = "${var.function_id}-${var.regions[count.index]}-usage-lambda"
   s3_bucket = var.s3_bucket
   s3_key = "usage_lambda.zip"
 
@@ -81,7 +82,7 @@ resource "aws_lambda_function" "usage-lambda" {
 }
 
 resource "aws_cloudwatch_event_rule" "cronjob_rule" {
-    name        = "cronjob_rule"
+    name        = "${var.function_id}-cronjob_rule"
     description = "Just cron like shceduler"
     schedule_expression = "cron(0 * * * ? *)"
 }
