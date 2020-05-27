@@ -72,11 +72,8 @@ resource "aws_lambda_function" "usage-lambda" {
   memory_size = 196
   environment {
     variables = {
-      anodotUrl = "${var.anodotUrl}"
-      token = "${var.token}"
       region = "${var.regions[count.index]}"
       lambda_bucket = "${var.s3_bucket}"
-      accountId     = "${var.accountId}"
     }
   }
 }
