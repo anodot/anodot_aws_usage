@@ -54,13 +54,21 @@ AWS_ACCESS_KEY_ID = <Your AWS Access Key ID>
 
 Below are the steps required to create and deploy the lambda function:
 
-1. Build and upload the lambda binary:
+1. Update **cloudwatch_metrics.yaml** with regions and metrics you need to push. 
+
+Or just run 
+```
+make create-config
+```
+This command will show you command line menu for generation default config. 
+
+2. Build and upload the lambda binary:
 
 ``` bash
 make deploy LAMBDA_S3=your-bucket-name
 ```
 
-2.  Fill **terraform/input.tfvars** with your data. This is file is needed by terraform to store terraform vars
+3.  Fill **terraform/input.tfvars** with your data. This is file is needed by terraform to store terraform vars
 
 ``` bash 
 cat input.tfvars
@@ -73,16 +81,9 @@ regions = ["region1", "region2"]
 
 Please notice that for each region a separate function will be created (it will be fetching metrics for this region) but it will be deployed into AWS_DEFAULT_REGION. 
 
-3. Update **cloudwatch_metrics.yaml** with regions and metrics you need to push. 
-
-Or just run 
-```
-make create-config
-```
-This command will show you command line menu for generation default config. 
 
 
-4. Deploy the lambda function into AWS
+4. Create the lambda function
 
 ```bash
 make create-function
