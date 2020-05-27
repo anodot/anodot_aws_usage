@@ -64,10 +64,6 @@ make deploy LAMBDA_S3=your-bucket-name
 
 ``` bash 
 cat input.tfvars
-# Token of anodot customer
-token     =
-# Url to anodot
-anodotUrl =
 # s3 bucket where lambda function stored
 s3_bucket =
 
