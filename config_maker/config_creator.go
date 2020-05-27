@@ -15,7 +15,7 @@ const reset = "\u001b[0m"
 var metricsButtons = []string{"Default (All metrics above)", "Done"}
 
 var metrics = map[string][]string{
-	"EC2": []string{"CoreCount", "VCpuCount"},
+	"EC2": []string{"CoreCount", "VCpuCount", "NetworkOut", "NetworkIn"},
 	"EBS": []string{"Size", "Done"},
 	"S3": []string{"BucketSizeBytes", "NumberOfObjects", "AllRequests", "GetRequests",
 		"PutRequests", "DeleteRequests", "HeadRequests",
