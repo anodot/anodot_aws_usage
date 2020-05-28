@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -57,7 +55,6 @@ func GetCloudwatchDynamoMetricList(cloudwatchSvc *cloudwatch.CloudWatch) ([]*clo
 
 func GetDynamoCloudwatchMetrics(resource *MonitoredResource, tables []DynamoTable) ([]MetricToFetch, error) {
 	metrics := make([]MetricToFetch, 0)
-
 	for _, mstat := range resource.Metrics {
 		for _, t := range tables {
 			if mstat.Name == "SuccessfulRequestLatency" {
@@ -104,10 +101,4 @@ func GetDynamoCloudwatchMetrics(resource *MonitoredResource, tables []DynamoTabl
 	}
 
 	return metrics, nil
-}
-
-func main() {
-	session := session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")}))
-	cloudwatchSvc := cloudwatch.New(session)
-	fmt.Println(GetCloudwatchDynamoMetricList(cloudwatchSvc))
 }
