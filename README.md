@@ -7,6 +7,7 @@
 - ELB 
 - NatGateway
 - Efs
+- DynamoDB
 
 ## Installation and package build
 ---
