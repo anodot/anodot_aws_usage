@@ -78,6 +78,51 @@ func GetEfsMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, r
 	return anodotMetrics, nil
 }
 
+func GetDynamoDbMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+	tables, err := ListTables(ses)
+	if err != nil {
+		log.Printf("Cloud not get list Dynamo DB tables : %v", err)
+		return anodotMetrics, nil
+	}
+	log.Printf("Found %d Dynamo DB tables ", len(tables))
+	metrics, err := GetDynamoCloudwatchMetrics(resource, tables)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return anodotMetrics, err
+	}
+
+	metricdatainput := NewGetMetricDataInput(metrics)
+	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+	if err != nil {
+		log.Printf("Error during DynamoDB metrics processing: %v", err)
+		return anodotMetrics, err
+	}
+
+	for _, m := range metrics {
+		for _, mr := range metricdataresults {
+			if *mr.Id == m.MStat.Id {
+
+				table := m.Resource.(DynamoTable)
+				properties := GetDynamoProperties(table)
+				for _, d := range m.Dimensions {
+					if d.Name == "Operation" {
+						properties["operation"] = d.Value
+					}
+				}
+
+				anodot_dynamo_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, properties)
+				anodotMetrics = append(anodotMetrics, anodot_dynamo_metrics...)
+			}
+		}
+	}
+	return anodotMetrics, nil
+}
+
 func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	if resource.CustomRegion != "" {
 		cloudwatchSvc = cloudwatch.New(session.Must(session.NewSession(&aws.Config{Region: aws.String(resource.CustomRegion)})))

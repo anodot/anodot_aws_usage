@@ -96,6 +96,8 @@ func GetMetricFunction(rname string) (MetricFunction, error) {
 		return GetNatGatewayMetrics, nil
 	case "Efs":
 		return GetEfsMetrics, nil
+	case "DynamoDB":
+		return GetDynamoDbMetrics, nil
 	default:
 		return nil, fmt.Errorf("Unknown resource type: %s", rname)
 	}
