@@ -15,7 +15,47 @@ Some notes before you start:
 - For creation of the neccessary infratructure we will use terraform (https://www.terraform.io/docs/index.html)
 - All neccessary tasks are described in the Makefile below. 
 - To upload the lambda function to AWS you need to create a zip archive with the binary file you've built
-
+- You should have access to AWS with minimum following permission:
+``` json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "events:DeleteRule",
+                "events:PutTargets",
+                "events:DescribeRule",
+                "events:PutRule",
+                "events:ListTagsForResource",
+                "events:RemoveTargets",
+                "events:ListTargetsByRule",
+                "ec2:Describe*",
+                "iam:GetRole",
+                "iam:GetPolicyVersion",
+                "iam:GetPolicy",
+                "iam:DeletePolicy",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:AttachRolePolicy",
+                "iam:CreatePolicy",
+                "iam:ListInstanceProfilesForRole",
+                "iam:PassRole",
+                "iam:DetachRolePolicy",
+                "iam:ListPolicyVersions",
+                "iam:ListAttachedRolePolicies"
+                "lambda:*",
+                "logs:*",
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+``` 
 Run "make help" to see all available tasks:
 
 ```bash
