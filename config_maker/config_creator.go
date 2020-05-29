@@ -26,9 +26,11 @@ var metrics = map[string][]string{
 		"BytesInFromDestination", "ActiveConnectionCount",
 		"ConnectionEstablishedCount"},
 	"Efs": []string{"Size_All", "Size_Infrequent", "Size_Standart", "DataWriteIOBytes", "DataReadIOBytes"},
+	"DynamoDB": []string{"SuccessfulRequestLatency", "ReturnedItemCount", "ConsumedWriteCapacityUnits",
+		"ProvisionedWriteCapacityUnits", "ConsumedReadCapacityUnits", "ProvisionedReadCapacityUnits"},
 }
 
-var services = []string{"EC2", "EBS", "S3", "Cloudfront", "NatGateway", "ELB", "Efs", "Default (All services above)", "Done"}
+var services = []string{"Default (All services above)", "EC2", "EBS", "S3", "Cloudfront", "NatGateway", "ELB", "Efs", "DynamoDB", "Done"}
 
 var regions = []string{
 	"eu-north-1",
