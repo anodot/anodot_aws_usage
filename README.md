@@ -126,6 +126,9 @@ Please notice that for each region a separate function will be created (it will 
 
 4. Create the lambda function
 
+For running the next command, you will need your Anodot **Access Token** and the URL through which you access Anodot.
+For obtaining your Anodot Access Token - Please refer to this [page](https://support.anodot.com/hc/en-us/articles/360002631114-Token-Management-) 
+
 ```bash
 make create-function
 ```
