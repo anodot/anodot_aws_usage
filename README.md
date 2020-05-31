@@ -151,7 +151,7 @@ ap-south-1:
       Unit: None
       Stat:  Average
 ```
-In the example above cloudfront metrcs will be feched and pushed for us-east-1 and EBS and EC2 for ap-south-1
+In the example above cloudfront metrics will be fetched and pushed for us-east-1 and EBS and EC2 for ap-south-1
 
 ### How do I destroy lambda functions ?
 ---
