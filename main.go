@@ -348,7 +348,7 @@ func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 					properties := GetEc2MetricProperties(i)
 					properties["target_type"] = "counter"
 					//log.Printf("Fetching CloudWatch metric: %s for: instance Id %s \n", m.MStat.Name, i.InstanceId)
-					anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values)
+					anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, properties)
 					anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
 
 				}
