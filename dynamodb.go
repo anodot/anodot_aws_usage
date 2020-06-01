@@ -11,10 +11,12 @@ import (
 var operations = []string{"PutItem", "UpdateItem", "Scan", "GetItem"}
 
 type DynamoTable struct {
-	Name string
+	Name   string
+	Region string
 }
 
 func ListTables(session *session.Session) ([]DynamoTable, error) {
+	region := session.Config.Region
 	tables := make([]DynamoTable, 0)
 
 	svc := dynamodb.New(session)
@@ -25,7 +27,7 @@ func ListTables(session *session.Session) ([]DynamoTable, error) {
 		return tables, nil
 	}
 	for _, tn := range result.TableNames {
-		tables = append(tables, DynamoTable{Name: *tn})
+		tables = append(tables, DynamoTable{Name: *tn, Region: *region})
 	}
 
 	return tables, nil
@@ -36,6 +38,7 @@ func GetDynamoProperties(table DynamoTable) map[string]string {
 		"service":          "efs",
 		"table_name":       table.Name,
 		"anodot-collector": "aws",
+		"region":           table.Region,
 	}
 	return properties
 }
