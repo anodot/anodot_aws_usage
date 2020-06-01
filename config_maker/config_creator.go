@@ -22,7 +22,7 @@ var metrics = map[string][]string{
 		"SelectRequests", "ListRequests"},
 	"Cloudfront": []string{"BytesDownloaded", "Requests", "TotalErrorRate"},
 	"ELB":        []string{"RequestCount", "EstimatedProcessedBytes"},
-	"NatGateway": []string{"BytesOutToSource", "BytesInFromSource",
+	"NatGateway": []string{"BytesOutToSource", "BytesOutToDestination", "BytesInFromSource",
 		"BytesInFromDestination", "ActiveConnectionCount",
 		"ConnectionEstablishedCount"},
 	"Efs": []string{"Size_All", "Size_Infrequent", "Size_Standart", "DataWriteIOBytes", "DataReadIOBytes"},

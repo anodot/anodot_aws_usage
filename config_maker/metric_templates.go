@@ -154,6 +154,15 @@ var metric_templates = map[string]MetricTemplate{
 		Stat:       "Average",
 	},
 	},
+	"BytesOutToDestination": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "NatGateway", Template: CloudwatchMetricTemplate{
+		Metricname: "BytesOutToDestination",
+		Period:     "3600",
+		Unit:       "Bytes",
+		Namespace:  "AWS/NATGateway",
+		Id:         "test1",
+		Stat:       "Average",
+	},
+	},
 	"BytesInFromSource": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "NatGateway", Template: CloudwatchMetricTemplate{
 		Metricname: "BytesInFromSource",
 		Period:     "3600",
