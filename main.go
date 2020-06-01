@@ -227,10 +227,19 @@ func GetS3Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch
 		for _, mr := range metricdataresults {
 			if *mr.Id == m.MStat.Id {
 				s := m.Resource.(S3)
+				properties := GetS3MetricProperties(s)
+				if len(m.Dimensions) > 0 {
+					for _, d := range m.Dimensions {
+						if d.Name == "StorageType" {
+							properties["storage_type"] = d.Value
+						}
+					}
+				}
+
 				if len(mr.Values) > 0 {
 					timestemps := []*time.Time{&now}
 					values := []*float64{mr.Values[0]}
-					anodotMetrics = append(anodotMetrics, GetAnodotMetric(m.MStat.Name, timestemps, values, GetS3MetricProperties(s))...)
+					anodotMetrics = append(anodotMetrics, GetAnodotMetric(m.MStat.Name, timestemps, values, properties)...)
 				}
 			}
 		}
