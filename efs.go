@@ -18,9 +18,11 @@ type Efs struct {
 	Tags         []*efs.Tag
 	SizeInIA     *float64 //// The latest known metered size (in bytes) of data stored in the Infrequent Access storage class.
 	SizeS        *float64 //// The latest known metered size (in bytes) of data stored in the Standard storage class.
+	Region       string
 }
 
 func DesribeFilesystems(session *session.Session) ([]Efs, error) {
+	region := session.Config.Region
 	efss := make([]Efs, 0)
 	svc := efs.New(session)
 	input := &efs.DescribeFileSystemsInput{}
@@ -45,6 +47,7 @@ func DesribeFilesystems(session *session.Session) ([]Efs, error) {
 			Size:         &size,
 			SizeInIA:     &sizeInA,
 			SizeS:        &sizeInS,
+			Region:       *region,
 		})
 	}
 	return efss, nil
@@ -55,6 +58,7 @@ func GetEfsMetricProperties(efs Efs) map[string]string {
 		"service":          "efs",
 		"FileSystemId":     *efs.FileSystemId,
 		"anodot-collector": "aws",
+		"region":           efs.Region,
 	}
 
 	if efs.Name != nil {

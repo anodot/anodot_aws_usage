@@ -14,9 +14,11 @@ type NatGateway struct {
 	SubnetId     *string
 	Tags         []*ec2.Tag
 	State        *string
+	Region       *string
 }
 
 func DescribeNatGateways(session *session.Session) ([]NatGateway, error) {
+	region := session.Config.Region
 	var nexttoken *string = nil
 	gateways := make([]NatGateway, 0)
 	maxcount := int64(900)
@@ -51,6 +53,7 @@ func DescribeNatGateways(session *session.Session) ([]NatGateway, error) {
 			SubnetId:     g.SubnetId,
 			State:        g.State,
 			Tags:         g.Tags,
+			Region:       region,
 		}
 		gateways = append(gateways, gateway)
 	}
@@ -65,6 +68,7 @@ func GetNatGatewayMetricProperties(gateway NatGateway) map[string]string {
 		"SubnetId":         *gateway.SubnetId,
 		"State":            *gateway.State,
 		"anodot-collector": "aws",
+		"region":           *gateway.Region,
 	}
 
 	for _, v := range gateway.Tags {
