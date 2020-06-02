@@ -103,13 +103,6 @@ func GetS3CloudwatchMetrics(resource *MonitoredResource, buckets []S3) ([]Metric
 					m.Dimensions = s3m.Dimensions
 				}
 			}
-
-			// Filter size metrics and drop evereything except StandardStorage storage class
-			if mstat.Name == "BucketSizeBytes" {
-				if !isStandartStorage(m.Dimensions) {
-					continue
-				}
-			}
 			m.Resource = bucket
 			mstatCopy := mstat
 			mstatCopy.Id = "s3" + strconv.Itoa(len(metrics))
