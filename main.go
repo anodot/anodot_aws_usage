@@ -64,9 +64,9 @@ func GetEfsMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, r
 				log.Printf("Processing EFS custom metric Size\n")
 				anodotMetrics = append(anodotMetrics, getEfsSizetMetric(efss)...)
 			}
-			if cm == "Size_Standart" {
-				log.Printf("Processing EFS custom metric Size_Standart\n")
-				anodotMetrics = append(anodotMetrics, getEfsStandartSizetMetric(efss)...)
+			if cm == "Size_Standard" {
+				log.Printf("Processing EFS custom metric Size_Standard\n")
+				anodotMetrics = append(anodotMetrics, getEfsStandardSizetMetric(efss)...)
 			}
 			if cm == "Size_Infrequent" {
 				log.Printf("Processing EFS custom metric Size_Infrequent\n")

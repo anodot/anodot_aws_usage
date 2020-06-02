@@ -122,10 +122,10 @@ func getEfsInfrequentSizeMetric(efss []Efs) []metricsAnodot.Anodot20Metric {
 	return metricList
 }
 
-func getEfsStandartSizetMetric(efss []Efs) []metricsAnodot.Anodot20Metric {
+func getEfsStandardSizetMetric(efss []Efs) []metricsAnodot.Anodot20Metric {
 	metricList := make([]metricsAnodot.Anodot20Metric, 0)
 	for _, efs := range efss {
-		metricList = append(metricList, addAnodotMetric(efs, "Size_Standart", *efs.SizeS))
+		metricList = append(metricList, addAnodotMetric(efs, "Size_Standard", *efs.SizeS))
 	}
 	return metricList
 }

@@ -25,7 +25,7 @@ var metrics = map[string][]string{
 	"NatGateway": []string{"BytesOutToSource", "BytesOutToDestination", "BytesInFromSource",
 		"BytesInFromDestination", "ActiveConnectionCount",
 		"ConnectionEstablishedCount"},
-	"Efs": []string{"Size_All", "Size_Infrequent", "Size_Standart", "DataWriteIOBytes", "DataReadIOBytes"},
+	"Efs": []string{"Size_All", "Size_Infrequent", "Size_Standard", "DataWriteIOBytes", "DataReadIOBytes"},
 	"DynamoDB": []string{"SuccessfulRequestLatency", "ReturnedItemCount", "ConsumedWriteCapacityUnits",
 		"ProvisionedWriteCapacityUnits", "ConsumedReadCapacityUnits", "ProvisionedReadCapacityUnits"},
 }

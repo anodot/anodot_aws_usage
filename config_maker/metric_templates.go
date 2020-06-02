@@ -219,8 +219,8 @@ var metric_templates = map[string]MetricTemplate{
 		Metricname: "Size_Infrequent",
 	},
 	},
-	"Size_Standart": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "Efs", Template: CustomMetricTemplate{
-		Metricname: "Size_Standart",
+	"Size_Standard": MetricTemplate{Metrictype: "CustomMetrics", ServiceName: "Efs", Template: CustomMetricTemplate{
+		Metricname: "Size_Standard",
 	},
 	},
 	"DataWriteIOBytes": MetricTemplate{Metrictype: "CloudWatchMetrics", ServiceName: "Efs", Template: CloudwatchMetricTemplate{
