@@ -85,16 +85,6 @@ func GetS3MetricProperties(bucket S3) map[string]string {
 
 func GetS3CloudwatchMetrics(resource *MonitoredResource, buckets []S3) ([]MetricToFetch, error) {
 	metrics := make([]MetricToFetch, 0)
-
-	isStandartStorage := func(dimensions []Dimension) bool {
-		for _, d := range dimensions {
-			if d.Name == "StorageType" && d.Value == "StandardStorage" {
-				return true
-			}
-		}
-		return false
-	}
-
 	for _, mstat := range resource.Metrics {
 		for _, bucket := range buckets {
 			m := MetricToFetch{}
