@@ -41,7 +41,8 @@ resource "aws_iam_policy" "usage_lambda_policy" {
         "cloudfront:ListDistributions",
         "s3:ListAllMyBuckets",
         "s3:ListBucket",
-        "s3:GetObject"
+        "s3:GetObject",
+        "dynamodb:ListTables"
       ],
       "Effect": "Allow",
       "Resource": "*"
