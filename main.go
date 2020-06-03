@@ -253,7 +253,7 @@ func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 	}
 
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
-	elbs, err := GetELBs(session, resource.Tags)
+	elbs, err := GetLoadBalancers(session)
 	if err != nil {
 		log.Printf("Cloud not describe Load Balancers %v", err)
 		return anodotMetrics, err
@@ -276,7 +276,7 @@ func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 	for _, m := range metrics {
 		for _, mr := range metricdataresults {
 			if *mr.Id == m.MStat.Id {
-				e := m.Resource.(ELB)
+				e := m.Resource.(LoadBalancer)
 				//log.Printf("Fetching CloudWatch metric: %s for ELB Id %s \n", m.MStat.Name, e.Name)
 				anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetELBMetricProperties(e))
 				anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)

@@ -1,106 +1,120 @@
 package main
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 )
 
 var pageSize int64 = 400
 
-type ELB struct {
-	Name  string
-	Az    string
-	VPCId string
-	//Type  string
-	Tags   []*elb.Tag
+type LoadBalancerTag struct {
+	Key   string
+	Value string
+}
+
+type LoadBalancer struct {
+	Name   string
+	Az     string
+	VPCId  string
+	Type   string
+	Tags   []LoadBalancerTag
 	Region string
 }
 
-func GetELBs(session *session.Session, customtags []Tag) ([]ELB, error) {
+func GetLoadBalancers(session *session.Session) ([]LoadBalancer, error) {
+	balancers := make([]LoadBalancer, 0)
+	netandapp, err := GetAppAndNetworkBalancers(session)
+	if err != nil {
+		return balancers, err
+	}
+	balancers = append(balancers, netandapp...)
+	classic, err := GetClassicBalancers(session)
+	if err != nil {
+		return balancers, err
+	}
+	balancers = append(balancers, classic...)
+	return balancers, nil
+}
+
+func GetAppAndNetworkBalancers(session *session.Session) ([]LoadBalancer, error) {
+	elbSvc := elbv2.New(session)
 	region := session.Config.Region
-	elbSvc := elb.New(session)
-	input := &elb.DescribeLoadBalancersInput{
+	balancers := make([]LoadBalancer, 0)
+
+	input := &elbv2.DescribeLoadBalancersInput{
 		PageSize: &pageSize,
 	}
+
 	result, err := elbSvc.DescribeLoadBalancers(input)
 	if err != nil {
 		return nil, err
 	}
-	elbs := make([]ELB, 0)
-	elbnames := make([]*string, 0)
-	for _, elb := range result.LoadBalancerDescriptions {
-		elbnames = append(elbnames, elb.LoadBalancerName)
-	}
 
-	tagsdescriptions, err := getTagDescriptions(elbnames, elbSvc)
-	if err != nil {
-		return elbs, err
-	}
-	tagsdescriptions = filterTagDescriptions(tagsdescriptions, customtags)
-
-	for _, elb := range result.LoadBalancerDescriptions {
-		for _, td := range tagsdescriptions {
-			if *elb.LoadBalancerName == *td.LoadBalancerName {
-				elbs = append(elbs, ELB{
-					Name:   *elb.LoadBalancerName,
-					Az:     *elb.AvailabilityZones[0],
-					VPCId:  *elb.VPCId,
-					Tags:   td.Tags,
-					Region: *region,
-				})
-			}
-		}
-	}
-	return elbs, nil
-}
-
-func filterTagDescriptions(tagsdescriptions []*elb.TagDescription, customtags []Tag) []*elb.TagDescription {
-	if len(customtags) == 0 {
-		return tagsdescriptions
-	}
-
-	tagsdescriptions_filtered := make([]*elb.TagDescription, 0)
-	var sametags int = 0
-	for _, tagdesc := range tagsdescriptions {
-		for _, ctag := range customtags {
-			for _, tag := range tagdesc.Tags {
-				if ctag.Name == *tag.Key && ctag.Value == *tag.Value {
-					sametags = sametags + 1
-					if sametags == len(customtags) {
-						tagsdescriptions_filtered = append(tagsdescriptions_filtered, tagdesc)
-						sametags = 0
-					}
-				}
-			}
-		}
-	}
-	return tagsdescriptions_filtered
-}
-
-func getTagDescriptions(elbnames []*string, elbSvc *elb.ELB) ([]*elb.TagDescription, error) {
-	tagsdescriptions := make([]*elb.TagDescription, 0)
-	inew := 0
-	for i := 0; i < len(elbnames); i++ {
-		inew = i + 20
-		if len(elbnames) <= inew {
-			inew = len(elbnames)
-		}
-
-		desctagsoutput, err := elbSvc.DescribeTags(&elb.DescribeTagsInput{
-			LoadBalancerNames: elbnames[i:inew],
+	for _, lb := range result.LoadBalancers {
+		desctagsoutput, err := elbSvc.DescribeTags(&elbv2.DescribeTagsInput{
+			ResourceArns: []*string{lb.LoadBalancerArn},
 		})
+
 		if err != nil {
-			return nil, err
+			log.Printf("Could not get tags for %s", *lb.DNSName)
+			continue
 		}
-		tagsdescriptions = append(tagsdescriptions, desctagsoutput.TagDescriptions...)
-		i = inew
+
+		balancers = append(balancers, LoadBalancer{
+			Name:   *lb.LoadBalancerName,
+			Az:     *lb.AvailabilityZones[0].ZoneName,
+			VPCId:  *lb.VpcId,
+			Type:   *lb.Type,
+			Tags:   convertTags(desctagsoutput.TagDescriptions[0].Tags),
+			Region: *region,
+		})
+
 	}
-	return tagsdescriptions, nil
+	return balancers, nil
 }
 
-func GetELBMetricProperties(elb ELB) map[string]string {
+func GetClassicBalancers(session *session.Session) ([]LoadBalancer, error) {
+	elbSvc := elb.New(session)
+	region := session.Config.Region
+	balancers := make([]LoadBalancer, 0)
+
+	input := &elb.DescribeLoadBalancersInput{
+		PageSize: &pageSize,
+	}
+
+	result, err := elbSvc.DescribeLoadBalancers(input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, lb := range result.LoadBalancerDescriptions {
+		desctagsoutput, err := elbSvc.DescribeTags(&elb.DescribeTagsInput{
+			LoadBalancerNames: []*string{lb.LoadBalancerName},
+		})
+
+		if err != nil {
+			log.Printf("Could not get tags for %s", *lb.DNSName)
+			continue
+		}
+
+		balancers = append(balancers, LoadBalancer{
+			Name:   *lb.LoadBalancerName,
+			Az:     *lb.AvailabilityZones[0],
+			VPCId:  *lb.VPCId,
+			Type:   "classic",
+			Tags:   convertTags(desctagsoutput.TagDescriptions[0].Tags),
+			Region: *region,
+		})
+
+	}
+	return balancers, nil
+}
+
+func GetELBMetricProperties(elb LoadBalancer) map[string]string {
 	properties := map[string]string{
 		"service":          "elb",
 		"name":             elb.Name,
@@ -108,16 +122,17 @@ func GetELBMetricProperties(elb ELB) map[string]string {
 		"vpc_id":           elb.VPCId,
 		"region":           elb.Region,
 		"anodot-collector": "aws",
+		"type":             elb.Type,
 	}
 
 	for _, v := range elb.Tags {
-		if len(*v.Key) > 50 || len(*v.Value) < 2 {
+		if len(v.Key) > 50 || len(v.Value) < 2 {
 			continue
 		}
 		if len(properties) == 17 {
 			break
 		}
-		properties[escape(*v.Key)] = escape(*v.Value)
+		properties[escape(v.Key)] = escape(v.Value)
 	}
 
 	for k, v := range properties {
@@ -128,7 +143,7 @@ func GetELBMetricProperties(elb ELB) map[string]string {
 	return properties
 }
 
-func GetELBCloudwatchMetrics(resource *MonitoredResource, elbs []ELB) ([]MetricToFetch, error) {
+func GetELBCloudwatchMetrics(resource *MonitoredResource, elbs []LoadBalancer) ([]MetricToFetch, error) {
 	metrics := make([]MetricToFetch, 0)
 
 	for _, mstat := range resource.Metrics {
@@ -148,4 +163,19 @@ func GetELBCloudwatchMetrics(resource *MonitoredResource, elbs []ELB) ([]MetricT
 		}
 	}
 	return metrics, nil
+}
+
+func convertTags(tags interface{}) []LoadBalancerTag {
+	blancertags := make([]LoadBalancerTag, 0)
+	if tags_, ok := tags.([]interface{}); ok {
+		for _, tag := range tags_ {
+			if tagv1, ok := tag.(*elb.Tag); ok {
+				blancertags = append(blancertags, LoadBalancerTag{Key: *tagv1.Key, Value: *tagv1.Value})
+			}
+			if tagv2, ok := tag.(*elbv2.Tag); ok {
+				blancertags = append(blancertags, LoadBalancerTag{Key: *tagv2.Key, Value: *tagv2.Value})
+			}
+		}
+	}
+	return blancertags
 }
