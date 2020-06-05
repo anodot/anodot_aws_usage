@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
@@ -98,6 +99,8 @@ func GetMetricFunction(rname string) (MetricFunction, error) {
 		return GetEfsMetrics, nil
 	case "DynamoDB":
 		return GetDynamoDbMetrics, nil
+	case "Kinesis":
+		return GetKinesisMetrics, nil
 	default:
 		return nil, fmt.Errorf("Unknown resource type: %s", rname)
 	}
@@ -302,17 +305,17 @@ func GetConfig() (Config, error) {
 	}
 	c.Region = region
 
-	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
+	fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return c, err
-	}*/
+	}
 
-	fileData, err := GetConfigFromS3(lambda_bucket, region)
+	/*fileData, err := GetConfigFromS3(lambda_bucket, region)
 	if err != nil {
 		fmt.Printf("Can not get config from s3 : %v\n", err)
 		return c, err
-	}
+	}*/
 
 	err = yaml.Unmarshal([]byte(fileData), &c)
 	if err != nil {

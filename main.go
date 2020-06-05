@@ -23,6 +23,41 @@ const metricVersion string = "5"
 
 var accountId string
 
+func GetKinesisMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+	streams, err := GetStreams(ses)
+	if err != nil {
+		return anodotMetrics, nil
+	}
+
+	metrics, err := GetKinesisStreamCloudwatchMetrics(resource, streams)
+	if err != nil {
+		return anodotMetrics, nil
+	}
+
+	metricdatainput := NewGetMetricDataInput(metrics)
+	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+	if err != nil {
+		log.Printf("Error during Kinesis metrics processing: %v", err)
+		return anodotMetrics, err
+	}
+
+	for _, m := range metrics {
+		for _, mr := range metricdataresults {
+			if *mr.Id == m.MStat.Id {
+				stream := m.Resource.(KinesisStream)
+				anodot_stream_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetStreamMetricProperties(stream))
+				anodotMetrics = append(anodotMetrics, anodot_stream_metrics...)
+			}
+		}
+	}
+
+	return anodotMetrics, nil
+}
+
 func GetEfsMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
 
