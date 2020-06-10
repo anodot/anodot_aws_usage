@@ -1,8 +1,11 @@
 package main
 
 import (
+	"log"
 	"strconv"
+	"time"
 
+	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -114,4 +117,66 @@ func GetCloudwatchMetricList(cloudwatchSvc *cloudwatch.CloudWatch) ([]*cloudwatc
 		return nil, err
 	}
 	return listmetrics.Metrics, nil
+}
+
+func GetS3Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+
+	listmetrics, err := GetCloudwatchMetricList(cloudwatchSvc)
+	if err != nil {
+		log.Printf("Could not get S3 metric list: %v", err)
+		return anodotMetrics, err
+	}
+
+	buckets, err := GetS3Buckets(session, listmetrics)
+	if err != nil {
+		log.Printf("Could not describe S3 buckets: %v", err)
+		return anodotMetrics, err
+	}
+	log.Printf("Got %d S3 buckets to process", len(buckets))
+
+	metrics, err := GetS3CloudwatchMetrics(resource, buckets)
+	if err != nil {
+		log.Printf("Error during s3 metrics processing: %v", err)
+		return anodotMetrics, err
+	}
+
+	dataInputs := NewGetMetricDataInput(metrics)
+
+	for _, mi := range dataInputs {
+		mi.SetStartTime(time.Now().Add(-48 * time.Hour))
+	}
+
+	metricdataresults, err := cloudWatchFetcher.FetchMetrics(dataInputs)
+	if err != nil {
+		log.Printf("Error during s3 metrics processing: %v", err)
+		return anodotMetrics, err
+	}
+
+	now := time.Now()
+	for _, m := range metrics {
+		for _, mr := range metricdataresults {
+			if *mr.Id == m.MStat.Id {
+				s := m.Resource.(S3)
+				properties := GetS3MetricProperties(s)
+				if len(m.Dimensions) > 0 {
+					for _, d := range m.Dimensions {
+						if d.Name == "StorageType" {
+							properties["storage_type"] = d.Value
+						}
+					}
+				}
+
+				if len(mr.Values) > 0 {
+					timestemps := []*time.Time{&now}
+					values := []*float64{mr.Values[0]}
+					anodotMetrics = append(anodotMetrics, GetAnodotMetric(m.MStat.Name, timestemps, values, properties)...)
+				}
+			}
+		}
+	}
+	return anodotMetrics, nil
 }

@@ -1,10 +1,14 @@
 package main
 
 import (
+	"log"
 	"strconv"
 
+	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
 type Ditribution struct {
@@ -101,4 +105,46 @@ func GetCloudfrontCloudwatchMetrics(resource *MonitoredResource, distributions [
 		}
 	}
 	return metrics, nil
+}
+
+func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	if resource.CustomRegion != "" {
+		cloudwatchSvc = cloudwatch.New(session.Must(session.NewSession(&aws.Config{Region: aws.String(resource.CustomRegion)})))
+	}
+
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	ditributions, err := GetDitributions(ses)
+	if err != nil {
+		log.Printf("Cloud not get list of Cloudfront distributions: %v", err)
+		return anodotMetrics, err
+	}
+
+	metrics, err := GetCloudfrontCloudwatchMetrics(resource, ditributions)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return anodotMetrics, err
+	}
+	metricdatainput := NewGetMetricDataInput(metrics)
+	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+	if err != nil {
+		log.Printf("Error during Cloudfront metrics processing: %v", err)
+		return anodotMetrics, err
+	}
+
+	for _, m := range metrics {
+		for _, mr := range metricdataresults {
+			if *mr.Id == m.MStat.Id {
+				d := m.Resource.(Ditribution)
+				//log.Printf("Fetching CloudWatch metric: %s for ELB Id %s \n", m.MStat.Name, e.Name)
+				anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetCloudfrontMetricProperties(d))
+				anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
+			}
+		}
+	}
+	return anodotMetrics, nil
+
 }

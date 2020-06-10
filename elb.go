@@ -4,7 +4,9 @@ import (
 	"log"
 	"strconv"
 
+	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 )
@@ -178,4 +180,43 @@ func convertTags(tags interface{}) []LoadBalancerTag {
 		}
 	}
 	return blancertags
+}
+
+func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	elbs, err := GetLoadBalancers(session)
+	if err != nil {
+		log.Printf("Cloud not describe Load Balancers %v", err)
+		return anodotMetrics, err
+	}
+	log.Printf("Got %d ELBs  to process", len(elbs))
+	metrics, err := GetELBCloudwatchMetrics(resource, elbs)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return anodotMetrics, err
+	}
+
+	metricdatainput := NewGetMetricDataInput(metrics)
+	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+
+	if err != nil {
+		log.Printf("Cloud not fetch ELB metrics from CLoudWatch : %v", err)
+		return anodotMetrics, err
+	}
+
+	for _, m := range metrics {
+		for _, mr := range metricdataresults {
+			if *mr.Id == m.MStat.Id {
+				e := m.Resource.(LoadBalancer)
+				//log.Printf("Fetching CloudWatch metric: %s for ELB Id %s \n", m.MStat.Name, e.Name)
+				anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetELBMetricProperties(e))
+				anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
+			}
+		}
+	}
+	return anodotMetrics, nil
 }

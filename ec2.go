@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
@@ -263,4 +265,64 @@ func GetEc2CloudwatchMetrics(resource *MonitoredResource, instances []Instance) 
 	}
 
 	return metrics, nil
+}
+
+func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	instanceFetcher := CreateEC2Fetcher(session)
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+
+	for _, t := range resource.Tags {
+		instanceFetcher.SetTag(t.Name, t.Value)
+	}
+	instances, err := instanceFetcher.GetInstances()
+	if err != nil {
+		log.Printf("Could not fetch EC2 instances from AWS %v", err)
+		return anodotMetrics, err
+	}
+
+	log.Printf("Found %d instances to process \n", len(instances))
+	metrics, err := GetEc2CloudwatchMetrics(resource, instances)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return anodotMetrics, err
+	}
+	if len(metrics) > 0 {
+		metricdatainput := NewGetMetricDataInput(metrics)
+		metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+		if err != nil {
+			log.Printf("Error during EC2 metrics processing: %v", err)
+			return anodotMetrics, err
+		}
+
+		for _, m := range metrics {
+			for _, mr := range metricdataresults {
+				if *mr.Id == m.MStat.Id {
+					i := m.Resource.(Instance)
+					properties := GetEc2MetricProperties(i)
+					properties["target_type"] = "counter"
+					//log.Printf("Fetching CloudWatch metric: %s for: instance Id %s \n", m.MStat.Name, i.InstanceId)
+					anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, properties)
+					anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
+
+				}
+			}
+		}
+	}
+
+	if len(resource.CustomMetrics) > 0 {
+		for _, cm := range resource.CustomMetrics {
+			if cm == "CoreCount" {
+				log.Printf("Processing EC2 custom metric CoreCount\n")
+				anodotMetrics = append(anodotMetrics, getCpuCountMetric(instances)...)
+			}
+			if cm == "VCpuCount" {
+				log.Printf("Processing EC2 custom metric VCpuCount\n")
+				anodotMetrics = append(anodotMetrics, getVirtualCpuCountMetric(instances)...)
+			}
+		}
+	}
+	return anodotMetrics, nil
 }

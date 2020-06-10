@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
 	"strconv"
 	"time"
 
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
@@ -169,4 +171,24 @@ func getEBSSizeMetric(ebs []EBS) []metricsAnodot.Anodot20Metric {
 		metricList = append(metricList, metric)
 	}
 	return metricList
+}
+
+func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	ebss, err := GetEBSVolumes(session, resource.Tags)
+
+	if err != nil {
+		log.Printf("Cloud not describe EBS volumes %v", err)
+		return anodotMetrics, err
+	}
+	log.Printf("Got %d EBS volumes to process", len(ebss))
+	if len(resource.CustomMetrics) > 0 {
+		for _, cm := range resource.CustomMetrics {
+			if cm == "Size" {
+				log.Printf("Processing EBS custom metric Size\n")
+				anodotMetrics = append(anodotMetrics, getEBSSizeMetric(ebss)...)
+			}
+		}
+	}
+	return anodotMetrics, nil
 }
