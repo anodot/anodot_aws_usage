@@ -101,7 +101,9 @@ Or just run
 ```
 make create-config
 ```
-This command will show you command line menu for generation default config. 
+This command will show you command line menu for generation default config.
+
+Please notice that metrics for Cloudfront available only at us-east-1, because it is global service. You can use Cloudfront metrics from another region, but you will need manually update config (more details at FAQ section).
 
 2. Build and upload the lambda binary:
 
