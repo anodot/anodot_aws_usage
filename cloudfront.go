@@ -109,7 +109,7 @@ func GetCloudfrontCloudwatchMetrics(resource *MonitoredResource, distributions [
 
 func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	if resource.CustomRegion != "" {
-		cloudwatchSvc = cloudwatch.New(session.Must(session.NewSession(&aws.Config{Region: aws.String(resource.CustomRegion)})))
+		cloudwatchSvc = cloudwatch.New(session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})))
 	}
 
 	cloudWatchFetcher := CloudWatchFetcher{

@@ -13,7 +13,8 @@ const red = "\u001b[31m"
 const reset = "\u001b[0m"
 
 var metricsButtons = []string{"Default (All metrics above)", "Done"}
-var serviceButtons = []string{"Default (All services above)", "Done"}
+
+//var serviceButtons = []string{"Default (All services above)", "Done"}
 
 var metrics = map[string][]string{
 	"EC2": []string{"CoreCount", "VCpuCount", "NetworkOut", "NetworkIn"},
@@ -31,7 +32,7 @@ var metrics = map[string][]string{
 		"ProvisionedWriteCapacityUnits", "ConsumedReadCapacityUnits", "ProvisionedReadCapacityUnits"},
 }
 
-var services = []string{"EC2", "EBS", "S3", "NatGateway", "ELB", "Efs", "DynamoDB"}
+var services = []string{"EC2", "EBS", "S3", "NatGateway", "ELB", "Efs", "DynamoDB", "Cloudfront", "Default (All services above)", "Done"}
 
 var regions = []string{
 	"eu-north-1",
@@ -200,6 +201,18 @@ func removeDuplicatesMetrics(list []Metric) []Metric {
 	return new
 }
 
+func removeCloudfront(list []string) []string {
+	services := make([]string, 0)
+
+	for _, s := range list {
+		if s != "Cloudfront" {
+			services = append(services, s)
+		}
+	}
+	delete(metrics, "Cloudfront")
+	return services
+}
+
 func removeDuplicatesService(list []Service) []Service {
 	new := make([]Service, 0)
 	ifPresent := false
@@ -283,11 +296,8 @@ func ChoseService(region string) ([]Service, error) {
 	chosenservices := make([]Service, 0)
 	servicenames := make([]string, 0)
 	selectmsg := "What services do you need"
-	if region == "us-east-1" {
-		services = append(services, "Cloudfront")
-	}
 
-	services = append(services, serviceButtons...)
+	//services = append(services, serviceButtons...)
 	for {
 		service, err := CustomSelect(selectmsg, services)
 		if err != nil {
@@ -306,6 +316,7 @@ func ChoseService(region string) ([]Service, error) {
 
 		if service == "Default (All services above)" {
 			chosenservices = GetAllMetricsAllServices()
+			services = removeCloudfront(services)
 			return chosenservices, nil
 		}
 
@@ -314,8 +325,11 @@ func ChoseService(region string) ([]Service, error) {
 			return make([]Service, 0), err
 		}
 
+		if service == "Cloudfront" {
+			services = removeCloudfront(services)
+		}
+
 		chosenservices = append(chosenservices, Service{name: service, metrics: metrics_})
-		fmt.Println(chosenservices)
 		servicenames = append(servicenames, service)
 
 		fmt.Printf("You chose next services for region: %s", region)
