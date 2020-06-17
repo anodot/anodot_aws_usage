@@ -66,6 +66,7 @@ func Send(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot.Anodot
 func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot.Anodot20Client) error {
 	var previousIndex int = 0
 	var index int = 0
+	var totalCount int = 0
 
 	for index < len(metrics) {
 		previousIndex = index
@@ -82,7 +83,9 @@ func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot
 				return err
 			}
 		}
+		totalCount = totalCount + len(metricsSlice)
 	}
+	log.Printf("Metrics pushed total count  %d \n", totalCount)
 	return nil
 }
 
