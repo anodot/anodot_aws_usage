@@ -128,7 +128,7 @@ func LambdaHandler() {
 	}
 
 	if len(ml.metrics) > 0 {
-		log.Printf("Total metrics count %d", len(ml.metrics))
+		log.Printf("Total fetched metrics count %d", len(ml.metrics))
 		err := SendMetrics(ml.metrics, metricSubmitter)
 		if err != nil {
 			log.Fatalf("Failed to send metrics")
