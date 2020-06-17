@@ -20,6 +20,7 @@ import (
 )
 
 const metricVersion string = "5"
+const metricsPerSecond = 1000
 
 var accountId string
 
@@ -48,7 +49,7 @@ func escape(s string) string {
 	return strings.ReplaceAll(s, ":", "_")
 }
 
-func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metrics.Anodot20Client) error {
+func Send(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot.Anodot20Client) error {
 	response, err := submiter.SubmitMetrics(metrics)
 
 	if err != nil || response.HasErrors() {
@@ -60,6 +61,29 @@ func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metrics.Anodo
 		log.Printf("Successfully pushed %d metric to anodot \n", len(metrics))
 	}
 	return err
+}
+
+func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot.Anodot20Client) error {
+	var previousIndex int = 0
+	var index int = 0
+
+	for index < len(metrics) {
+		previousIndex = index
+		index = index + metricsPerSecond
+		if index > len(metrics) {
+			index = len(metrics)
+		}
+		var metricsSlice []metricsAnodot.Anodot20Metric = metrics[previousIndex:index]
+		err := Send(metricsSlice, submiter)
+		if err != nil {
+			log.Printf("Retry sending metrics")
+			err := Send(metricsSlice, submiter)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func LambdaHandler() {
@@ -101,10 +125,10 @@ func LambdaHandler() {
 	}
 
 	if len(ml.metrics) > 0 {
+		log.Printf("Total metrics count %d", len(ml.metrics))
 		err := SendMetrics(ml.metrics, metricSubmitter)
 		if err != nil {
-			log.Printf("Retry sending metrics to anodot ... ")
-			_ = SendMetrics(ml.metrics, metricSubmitter)
+			log.Fatalf("Failed to send metrics")
 		}
 	} else {
 		log.Print("No any metrics to push ")
