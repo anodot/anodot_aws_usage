@@ -8,6 +8,7 @@
 - NatGateway
 - Efs
 - DynamoDB
+- Cloudfront
 
 ## Installation and package build
 ---
