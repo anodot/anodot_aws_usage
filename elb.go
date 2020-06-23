@@ -169,14 +169,15 @@ func GetELBCloudwatchMetrics(resource *MonitoredResource, elbs []LoadBalancer) (
 
 func convertTags(tags interface{}) []LoadBalancerTag {
 	blancertags := make([]LoadBalancerTag, 0)
-	if tags_, ok := tags.([]interface{}); ok {
+	if tags_, ok := tags.([]*elbv2.Tag); ok {
 		for _, tag := range tags_ {
-			if tagv1, ok := tag.(*elb.Tag); ok {
-				blancertags = append(blancertags, LoadBalancerTag{Key: *tagv1.Key, Value: *tagv1.Value})
-			}
-			if tagv2, ok := tag.(*elbv2.Tag); ok {
-				blancertags = append(blancertags, LoadBalancerTag{Key: *tagv2.Key, Value: *tagv2.Value})
-			}
+			blancertags = append(blancertags, LoadBalancerTag{Key: *tag.Key, Value: *tag.Value})
+		}
+	}
+
+	if tags_, ok := tags.([]*elb.Tag); ok {
+		for _, tag := range tags_ {
+			blancertags = append(blancertags, LoadBalancerTag{Key: *tag.Key, Value: *tag.Value})
 		}
 	}
 	return blancertags
