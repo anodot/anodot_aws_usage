@@ -1,5 +1,6 @@
 BUILD_IMAGE := usage_lambda
 BUILD_IMAGE_VERSION := 1.0
+BRANCH ?= master
 
 CONTAINER_BASH := docker run --workdir /output -e GOOS -e GOARCH -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION)
 GO :=  $(CONTAINER_BASH) go
@@ -31,7 +32,10 @@ create_config := $(if $("$(wildcard $(CONFIG_MAKER))"),$(BUILD_CONFIG),$(RUN_CON
 
 deploy: build create-archive copy_to_s3 copy_config_s3
 create-function: terraform-init terraform-plan terraform-apply
+deploy-branch: checkout build create-archive copy_to_s3
 
+checkout:
+	git fetch && git checkout $(BRANCH)
 clean-image:
 	docker rmi -f `docker images $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) -a -q` || true
 
@@ -93,9 +97,10 @@ help:
 	@echo "	$(GREEN) make copy_to_s3 LAMBDA_S3=your-bucket-name $(NC)          -- copy lambda archive to s3"
 	@echo "	$(GREEN) make copy_config_s3 LAMBDA_S3=your-bucket-name $(NC)      -- copy config file to s3"
 	@echo "	$(GREEN) make clean-image $(NC)    -- will delete $(BUILD_IMAGE) image "
-	@echo "	$(GREEN) make deploy LAMBDA_S3=your-bucket-name $(NC)         -- will run build-image, build, build-image, copy_to_s3  \n"
-	@echo "	$(GREEN) make create-config $(NC)         -- will run command line menu to help build a new config file   \n"
-
+	@echo "	$(GREEN) make deploy LAMBDA_S3=your-bucket-name $(NC)         -- will run build-image, build, build-image, copy_to_s3  "
+	@echo "	$(GREEN) make create-config $(NC)         -- will run command line menu to help build a new config file  "
+	@echo "	$(GREEN) make deploy-branch BRANCH=branch-name LAMBDA_S3=your-bucket-name $(NC)         -- will fetcch $BRANCH from github, build it and upload to s3   \n"
+		
 	@echo "$(CYAN) Terraform related tasks: $(NC) "
 	@echo "	$(GREEN) make terraform-init $(NC)    -- will initialize terraform providers and modules "
 	@echo "	$(GREEN) make terraform-plan $(NC)    -- will create an execution plan. Shows what will done. What services will be created"
