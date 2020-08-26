@@ -154,8 +154,8 @@ func getInput(fl Filters, nexttoken *string) *ec2.DescribeInstancesInput {
 
 func GetEc2MetricProperties(ins Instance) map[string]string {
 	properties := map[string]string{
-		"service":             "ec2",
-		"instance_id":         ins.InstanceId,
+		"service": "ec2",
+		//"instance_id":         ins.InstanceId,
 		"instance_type":       ins.InstanceType,
 		"monitoring":          ins.Monitoring,
 		"availability_zone":   ins.AvailabilityZone,
@@ -196,6 +196,7 @@ func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 		}
 		properties["metric_version"] = metricVersion
 		properties["what"] = "cpu_count"
+		properties["target_type"] = "counter"
 		metric := metrics.Anodot20Metric{
 			Properties: properties,
 			Value:      float64(i.CoreCount),
@@ -203,17 +204,6 @@ func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 				time.Now(),
 			},
 		}
-		// temporary add doulblicate metrics with  target_type=counter
-		properties["target_type"] = "counter"
-		metric2 := metrics.Anodot20Metric{
-			Properties: properties,
-			Value:      float64(i.CoreCount),
-			Timestamp: metrics.AnodotTimestamp{
-				time.Now(),
-			},
-		}
-
-		metricList = append(metricList, metric2)
 		metricList = append(metricList, metric)
 	}
 
