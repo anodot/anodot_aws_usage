@@ -35,7 +35,7 @@ create-function: terraform-init terraform-plan terraform-apply
 deploy-branch: checkout build create-archive copy_to_s3
 
 checkout:
-	git fetch && git checkout $(BRANCH)
+	git fetch origin $(BRANCH) && git checkout $(BRANCH)
 clean-image:
 	docker rmi -f `docker images $(BUILD_IMAGE):$(BUILD_IMAGE_VERSION) -a -q` || true
 
