@@ -100,6 +100,8 @@ func GetMetricFunction(rname string) (MetricFunction, error) {
 		return GetDynamoDbMetrics, nil
 	case "Kinesis":
 		return GetKinesisMetrics, nil
+	case "Elasticache":
+		return GetElasticacheMetrics, nil
 	default:
 		return nil, fmt.Errorf("Unknown resource type: %s", rname)
 	}
