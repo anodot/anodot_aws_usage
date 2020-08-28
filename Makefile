@@ -99,7 +99,7 @@ help:
 	@echo "	$(GREEN) make clean-image $(NC)    -- will delete $(BUILD_IMAGE) image "
 	@echo "	$(GREEN) make deploy LAMBDA_S3=your-bucket-name $(NC)         -- will run build-image, build, build-image, copy_to_s3  "
 	@echo "	$(GREEN) make create-config $(NC)         -- will run command line menu to help build a new config file  "
-	@echo "	$(GREEN) make deploy-branch BRANCH=branch-name LAMBDA_S3=your-bucket-name $(NC)         -- will fetcch $BRANCH from github, build it and upload to s3   \n"
+	@echo "	$(GREEN) make deploy-branch BRANCH=branch-name LAMBDA_S3=your-bucket-name $(NC)         -- will fetch BRANCH from github, build it and upload to s3   \n"
 		
 	@echo "$(CYAN) Terraform related tasks: $(NC) "
 	@echo "	$(GREEN) make terraform-init $(NC)    -- will initialize terraform providers and modules "
