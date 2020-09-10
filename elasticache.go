@@ -84,7 +84,14 @@ func GetElasticacheMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.Cloud
 		return anodotMetrics, err
 	}
 
-	anodotMetrics = getCacheNodesCount(clusters, nodegroups)
+	if len(resource.CustomMetrics) > 0 {
+		for _, cm := range resource.CustomMetrics {
+			if cm == "CacheNodesCount" {
+				anodotMetrics = getCacheNodesCount(clusters, nodegroups)
+			}
+		}
+	}
+
 	mfetch, err := GetElasticacheCloudwatchMetrics(resource, clusters)
 	if err != nil {
 		return anodotMetrics, err
@@ -132,6 +139,7 @@ func getCacheNodesCount(cacheclusters []CacheCluster, nodegroups []NodeGroup) []
 			if ng.ReplicationGroupId == cluster.ReplicationGroupId {
 				props := GetElasticacheMetricProperties(cluster)
 				props["node_group_id"] = ng.NodeGroupId
+				props["what"] = "cache_nodes_count"
 				nodenum, _ := strconv.Atoi(cluster.NumCacheNodes)
 				metric := metricsAnodot.Anodot20Metric{
 					Properties: props,
