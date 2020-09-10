@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -10,7 +12,7 @@ import (
 )
 
 type CacheCluster struct {
-	CacheClusterId, Engine, CacheClusterStatus, NumCacheNodes, ReplicationGroupId, Region string
+	CacheClusterId, Engine, CacheClusterStatus, NumCacheNodes, ReplicationGroupId, Region, CacheNodeType string
 }
 
 func GetCacheClusters(session *session.Session) ([]CacheCluster, error) {
@@ -28,7 +30,7 @@ func GetCacheClusters(session *session.Session) ([]CacheCluster, error) {
 			*cluster.Engine,
 			*cluster.CacheClusterStatus,
 			nodenum, *cluster.ReplicationGroupId,
-			*region,
+			*region, *cluster.CacheNodeType,
 		})
 	}
 	return clusters, nil
@@ -39,10 +41,11 @@ func GetElasticacheMetricProperties(c CacheCluster) map[string]string {
 		"cache_cluster_id":     c.CacheClusterId,
 		"engine":               c.Engine,
 		"cache_cluster_status": c.CacheClusterStatus,
-		"num_cache_nodes":      c.NumCacheNodes,
+		//"num_cache_nodes":      c.NumCacheNodes,
 		"replication_group_id": c.ReplicationGroupId,
 		"region":               c.Region,
 		"anodot-collector":     "aws",
+		"cache_node_type":      c.CacheNodeType,
 	}
 }
 
@@ -77,6 +80,13 @@ func GetElasticacheMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.Cloud
 	if err != nil {
 		return anodotMetrics, err
 	}
+	nodegroups, err := GetNodeGroups(ses)
+	if err != nil {
+		return anodotMetrics, err
+	}
+
+	anodotMetrics = getCacheNodesCount(clusters, nodegroups)
+	fmt.Println(anodotMetrics[0:5])
 	mfetch, err := GetElasticacheCloudwatchMetrics(resource, clusters)
 	if err != nil {
 		return anodotMetrics, err
@@ -93,4 +103,48 @@ func GetElasticacheMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.Cloud
 		}
 	}
 	return anodotMetrics, nil
+}
+
+type NodeGroup struct {
+	ReplicationGroupId, NodeGroupId string
+}
+
+func GetNodeGroups(session *session.Session) ([]NodeGroup, error) {
+	nodegroups := make([]NodeGroup, 0)
+	svc := elasticache.New(session)
+	input := &elasticache.DescribeReplicationGroupsInput{}
+	result, err := svc.DescribeReplicationGroups(input)
+	if err != nil {
+		return nodegroups, err
+	}
+	for _, rg := range result.ReplicationGroups {
+		for _, ng := range rg.NodeGroups {
+			nodegroups = append(nodegroups, NodeGroup{NodeGroupId: *ng.NodeGroupId,
+				ReplicationGroupId: *rg.ReplicationGroupId,
+			})
+		}
+	}
+	return nodegroups, nil
+}
+
+func getCacheNodesCount(cacheclusters []CacheCluster, nodegroups []NodeGroup) []metricsAnodot.Anodot20Metric {
+	metrics := make([]metricsAnodot.Anodot20Metric, 0)
+	for _, cluster := range cacheclusters {
+		for _, ng := range nodegroups {
+			if ng.ReplicationGroupId == cluster.ReplicationGroupId {
+				props := GetElasticacheMetricProperties(cluster)
+				props["node_group_id"] = ng.NodeGroupId
+				nodenum, _ := strconv.Atoi(cluster.NumCacheNodes)
+				metric := metricsAnodot.Anodot20Metric{
+					Properties: props,
+					Value:      float64(nodenum),
+					Timestamp: metricsAnodot.AnodotTimestamp{
+						time.Now(),
+					},
+				}
+				metrics = append(metrics, metric)
+			}
+		}
+	}
+	return metrics
 }
