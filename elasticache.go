@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -86,7 +85,6 @@ func GetElasticacheMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.Cloud
 	}
 
 	anodotMetrics = getCacheNodesCount(clusters, nodegroups)
-	fmt.Println(anodotMetrics[0:5])
 	mfetch, err := GetElasticacheCloudwatchMetrics(resource, clusters)
 	if err != nil {
 		return anodotMetrics, err
