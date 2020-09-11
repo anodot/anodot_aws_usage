@@ -37,6 +37,7 @@ func GetCacheClusters(session *session.Session) ([]CacheCluster, error) {
 
 func GetElasticacheMetricProperties(c CacheCluster) map[string]string {
 	return map[string]string{
+		"service":              "elasticache",
 		"cache_cluster_id":     c.CacheClusterId,
 		"engine":               c.Engine,
 		"cache_cluster_status": c.CacheClusterStatus,
@@ -135,6 +136,21 @@ func GetNodeGroups(session *session.Session) ([]NodeGroup, error) {
 func getCacheNodesCount(cacheclusters []CacheCluster, nodegroups []NodeGroup) []metricsAnodot.Anodot20Metric {
 	metrics := make([]metricsAnodot.Anodot20Metric, 0)
 	for _, cluster := range cacheclusters {
+		if cluster.Engine == "memcached" {
+			props := GetElasticacheMetricProperties(cluster)
+			props["what"] = "cache_nodes_count"
+			nodenum, _ := strconv.Atoi(cluster.NumCacheNodes)
+			metric := metricsAnodot.Anodot20Metric{
+				Properties: props,
+				Value:      float64(nodenum),
+				Timestamp: metricsAnodot.AnodotTimestamp{
+					time.Now(),
+				},
+			}
+			metrics = append(metrics, metric)
+			continue
+		}
+
 		for _, ng := range nodegroups {
 			if ng.ReplicationGroupId == cluster.ReplicationGroupId {
 				props := GetElasticacheMetricProperties(cluster)
