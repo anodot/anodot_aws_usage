@@ -39,6 +39,8 @@ resource "aws_iam_policy" "usage_lambda_policy" {
         "elasticloadbalancing:DescribeTags",
 	      "elasticfilesystem:DescribeFileSystems",
         "cloudfront:ListDistributions",
+        "elasticache:DescribeReplicationGroups",
+        "elasticache:DescribeCacheClusters",
         "s3:ListAllMyBuckets",
         "s3:ListBucket",
         "s3:GetObject",
