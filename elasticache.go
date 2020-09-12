@@ -24,11 +24,16 @@ func GetCacheClusters(session *session.Session) ([]CacheCluster, error) {
 		return clusters, err
 	}
 	for _, cluster := range result.CacheClusters {
+		repId := ""
 		nodenum := strconv.FormatInt(*cluster.NumCacheNodes, 10)
+		if *cluster.Engine != "memcached" {
+			repId = *cluster.ReplicationGroupId
+		}
+
 		clusters = append(clusters, CacheCluster{*cluster.CacheClusterId,
 			*cluster.Engine,
 			*cluster.CacheClusterStatus,
-			nodenum, *cluster.ReplicationGroupId,
+			nodenum, repId,
 			*region, *cluster.CacheNodeType,
 		})
 	}
@@ -42,10 +47,9 @@ func GetElasticacheMetricProperties(c CacheCluster) map[string]string {
 		"engine":               c.Engine,
 		"cache_cluster_status": c.CacheClusterStatus,
 		//"num_cache_nodes":      c.NumCacheNodes,
-		"replication_group_id": c.ReplicationGroupId,
-		"region":               c.Region,
-		"anodot-collector":     "aws",
-		"cache_node_type":      c.CacheNodeType,
+		"region":           c.Region,
+		"anodot-collector": "aws",
+		"cache_node_type":  c.CacheNodeType,
 	}
 }
 
