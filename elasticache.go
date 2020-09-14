@@ -159,6 +159,7 @@ func getCacheNodesCount(cacheclusters []CacheCluster, nodegroups []NodeGroup) []
 			if ng.ReplicationGroupId == cluster.ReplicationGroupId {
 				props := GetElasticacheMetricProperties(cluster)
 				props["node_group_id"] = ng.NodeGroupId
+				props["replication_group_id"] = cluster.ReplicationGroupId
 				props["what"] = "cache_nodes_count"
 				nodenum, _ := strconv.Atoi(cluster.NumCacheNodes)
 				metric := metricsAnodot.Anodot20Metric{
