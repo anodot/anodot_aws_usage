@@ -142,6 +142,7 @@ func getCacheNodesCount(cacheclusters []CacheCluster, nodegroups []NodeGroup) []
 	for _, cluster := range cacheclusters {
 		if cluster.Engine == "memcached" {
 			props := GetElasticacheMetricProperties(cluster)
+			props["cluster_name"] = props["cache_cluster_id"]
 			props["what"] = "cache_nodes_count"
 			nodenum, _ := strconv.Atoi(cluster.NumCacheNodes)
 			metric := metricsAnodot.Anodot20Metric{
