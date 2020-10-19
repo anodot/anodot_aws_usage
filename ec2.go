@@ -109,6 +109,7 @@ func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 	}
 
 	for _, i := range ec2list {
+		var vpcId string
 		if *i.State.Code != 16 {
 			fmt.Printf("Instance %s in not running state: %s \n", *i.InstanceId, *i.State.Name)
 			continue
@@ -116,6 +117,12 @@ func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 		lifecycle := "normal"
 		if i.InstanceLifecycle != nil {
 			lifecycle = *i.InstanceLifecycle
+		}
+
+		if i.VpcId == nil {
+			vpcId = "None"
+		} else {
+			vpcId = *i.VpcId
 		}
 		li = append(li, Instance{
 			CoreCount:          *i.CpuOptions.CoreCount,
@@ -127,7 +134,7 @@ func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 			AvailabilityZone:   *i.Placement.AvailabilityZone,
 			GroupName:          *i.Placement.GroupName,
 			State:              *i.State.Name,
-			VpcId:              *i.VpcId,
+			VpcId:              vpcId,
 			VirtualizationType: *i.VirtualizationType,
 			Region:             ec2fetcher.region,
 			Lifecycle:          lifecycle,
