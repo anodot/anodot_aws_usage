@@ -40,16 +40,40 @@ func GetCacheClusters(session *session.Session) ([]CacheCluster, error) {
 	return clusters, nil
 }
 
+func GetElasticacheDimensions() []string {
+	return []string{
+		"service",
+		"cache_cluster_id",
+		"engine",
+		"cache_cluster_status",
+		"region",
+		"anodot-collector",
+		"cache_node_type",
+		"node_group_id",
+		"replication_group_id",
+		"cluster_name",
+	}
+}
+
+func GetElasticacheCustomMetrics() []CustomMetricDefinition {
+	return []CustomMetricDefinition{
+		CustomMetricDefinition{
+			Name:       "cache_nodes_count",
+			Alias:      "CacheNodesCount",
+			TargetType: "counter",
+		},
+	}
+}
+
 func GetElasticacheMetricProperties(c CacheCluster) map[string]string {
 	return map[string]string{
 		"service":              "elasticache",
 		"cache_cluster_id":     c.CacheClusterId,
 		"engine":               c.Engine,
 		"cache_cluster_status": c.CacheClusterStatus,
-		//"num_cache_nodes":      c.NumCacheNodes,
-		"region":           c.Region,
-		"anodot-collector": "aws",
-		"cache_node_type":  c.CacheNodeType,
+		"region":               c.Region,
+		"anodot-collector":     "aws",
+		"cache_node_type":      c.CacheNodeType,
 	}
 }
 

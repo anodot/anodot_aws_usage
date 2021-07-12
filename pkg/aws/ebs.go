@@ -111,6 +111,28 @@ func GetEBSVolumes(session *session.Session, customtags []Tag) ([]EBS, error) {
 	}
 	return ebslist, nil
 }
+func GetEBSDimensions() []string {
+	return []string{
+		"service",
+		"volume_id",
+		"ebs_type",
+		"state",
+		"availability_zone",
+		"iops",
+		"region",
+		"anodot-collector",
+	}
+}
+func GetEBSCustomMetrics() []CustomMetricDefinition {
+
+	return []CustomMetricDefinition{
+		CustomMetricDefinition{
+			Name:       "size",
+			Alias:      "Size",
+			TargetType: "counter",
+		},
+	}
+}
 
 func GetEBSMetricProperties(ebs EBS) map[string]string {
 	properties := map[string]string{

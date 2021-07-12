@@ -53,6 +53,17 @@ func GetDitributions(session *session.Session) ([]Ditribution, error) {
 	return distributions, nil
 }
 
+func GetCloudfrontDimensions() []string {
+	return []string{
+		"service",
+		"domain_name",
+		"enabled",
+		"http_version",
+		"distribution_id",
+		"status",
+	}
+}
+
 func GetCloudfrontMetricProperties(distribution Ditribution) map[string]string {
 	properties := map[string]string{
 		"service":         "cloudfront",

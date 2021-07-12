@@ -178,7 +178,6 @@ func GetEc2Dimensions() []string {
 }
 
 func GetEc2CustomMetrics() []CustomMetricDefinition {
-
 	return []CustomMetricDefinition{
 		CustomMetricDefinition{
 			Name:       "cpu_count",

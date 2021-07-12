@@ -62,6 +62,18 @@ func DescribeNatGateways(session *session.Session) ([]NatGateway, error) {
 	return gateways, nil
 }
 
+func GetNatGatewayMetricDimensions() []string {
+	return []string{
+		"service",
+		"NatGatewayId",
+		"VpcId",
+		"SubnetId",
+		"State",
+		"anodot-collector",
+		"region",
+	}
+}
+
 func GetNatGatewayMetricProperties(gateway NatGateway) map[string]string {
 	properties := map[string]string{
 		"service":          "natgateway",

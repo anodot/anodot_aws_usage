@@ -34,6 +34,15 @@ func ListTables(session *session.Session) ([]DynamoTable, error) {
 
 	return tables, nil
 }
+func GetDynamoDimensions() []string {
+	return []string{
+		"service",
+		"table_name",
+		"anodot-collector",
+		"region",
+		"operation",
+	}
+}
 
 func GetDynamoProperties(table DynamoTable) map[string]string {
 	properties := map[string]string{

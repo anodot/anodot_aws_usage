@@ -28,32 +28,26 @@ func GetSchemas(config ConfigForSchema) ([]metrics3.AnodotMetricsSchema, error) 
 				dimensions[servicName] = awsLambda.GetEc2Dimensions()
 				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
 			case "EBS":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetEBSDimensions()
+				customMetricsDefs = awsLambda.GetEBSCustomMetrics()
 			case "ELB":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetELBDimensions()
 			case "S3":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetS3Dimensions()
 			case "Cloudfront":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetCloudfrontDimensions()
 			case "NatGateway":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetNatGatewayMetricDimensions()
 			case "Efs":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetEfsDimensions()
+				customMetricsDefs = awsLambda.GetEfsCustomMetrics()
 			case "DynamoDB":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetDynamoDimensions()
 			case "Kinesis":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetStreamDimensions()
 			case "Elasticache":
-				dimensions[servicName] = awsLambda.GetEc2Dimensions()
-				customMetricsDefs = awsLambda.GetEc2CustomMetrics()
+				dimensions[servicName] = awsLambda.GetElasticacheDimensions()
+				customMetricsDefs = awsLambda.GetElasticacheCustomMetrics()
 			default:
 				return nil, fmt.Errorf("Unknown service name : %s", servicName)
 			}

@@ -70,6 +70,16 @@ func GetS3Buckets(session *session.Session, listmetrics []*cloudwatch.Metric) ([
 	return s3list, err
 }
 
+func GetS3Dimensions() []string {
+	return []string{
+		"storage_type",
+		"service",
+		"bucket_name",
+		"region",
+		"anodot-collector",
+	}
+}
+
 func GetS3MetricProperties(bucket S3) map[string]string {
 	properties := map[string]string{
 		"service":          "s3",

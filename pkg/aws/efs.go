@@ -54,6 +54,35 @@ func DesribeFilesystems(session *session.Session) ([]Efs, error) {
 	}
 	return efss, nil
 }
+func GetEfsDimensions() []string {
+	return []string{
+		"service",
+		"FileSystemId",
+		"anodot-collector",
+		"region",
+	}
+}
+
+func GetEfsCustomMetrics() []CustomMetricDefinition {
+
+	return []CustomMetricDefinition{
+		CustomMetricDefinition{
+			Name:       "Size_All",
+			Alias:      "Size_All",
+			TargetType: "average",
+		},
+		CustomMetricDefinition{
+			Name:       "Size_Infrequent",
+			Alias:      "Size_Infrequent",
+			TargetType: "average",
+		},
+		CustomMetricDefinition{
+			Name:       "Size_Standard",
+			Alias:      "Size_Standard",
+			TargetType: "average",
+		},
+	}
+}
 
 func GetEfsMetricProperties(efs Efs) map[string]string {
 	properties := map[string]string{
@@ -137,7 +166,7 @@ func addAnodotMetric(efs Efs, what string, value float64) metricsAnodot.Anodot20
 	/*if accountId != "" {
 		properties["account_id"] = accountId
 	}*/
-	//properties["target_type"] = "counter"n
+	//properties["target_type"] = "counter"
 	properties["what"] = what
 	metric := metrics.Anodot20Metric{
 		Properties: properties,

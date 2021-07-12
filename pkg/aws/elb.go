@@ -116,6 +116,18 @@ func GetClassicBalancers(session *session.Session) ([]LoadBalancer, error) {
 	return balancers, nil
 }
 
+func GetELBDimensions() []string {
+	return []string{
+		"service",
+		"name",
+		"az",
+		"vpc_id",
+		"region",
+		"anodot-collector",
+		"type",
+	}
+}
+
 func GetELBMetricProperties(elb LoadBalancer) map[string]string {
 	properties := map[string]string{
 		"service":          "elb",

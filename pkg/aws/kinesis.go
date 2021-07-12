@@ -36,6 +36,15 @@ func GetStreams(session *session.Session) ([]KinesisStream, error) {
 	return streams, nil
 }
 
+func GetStreamDimensions() []string {
+	return []string{
+		"service",
+		"StreamName",
+		"anodot-collector",
+		"region",
+	}
+}
+
 func GetStreamMetricProperties(stream KinesisStream) map[string]string {
 	return map[string]string{
 		"service":          "kinesis",
