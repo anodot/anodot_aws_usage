@@ -4,50 +4,22 @@ import (
 	"errors"
 	"log"
 	"net/url"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/anodot/anodot-common/pkg/metrics"
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 
 	//"github.com/aws/aws-lambda-go/lambda"
-
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	services "github.com/usage-lambda/pkg/aws"
 )
 
-const metricVersion string = "5"
 const metricsPerSecond = 1000
 
 var accountId string
-
-func GetAnodotMetric(name string, timestemps []*time.Time, values []*float64, properties map[string]string) []metricsAnodot.Anodot20Metric {
-	properties["metric_version"] = metricVersion
-	if accountId != "" {
-		properties["account_id"] = accountId
-	}
-
-	metricList := make([]metricsAnodot.Anodot20Metric, 0)
-	for i := 0; i < len(values); i++ {
-		properties["what"] = name
-		metric := metrics.Anodot20Metric{
-			Properties: properties,
-			Value:      float64(*values[i]),
-			Timestamp: metrics.AnodotTimestamp{
-				*timestemps[i],
-			},
-		}
-		metricList = append(metricList, metric)
-	}
-	return metricList
-}
-
-func escape(s string) string {
-	return strings.ReplaceAll(s, ":", "_")
-}
 
 func Send(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot.Anodot20Client) error {
 	response, err := submiter.SubmitMetrics(metrics)
@@ -90,7 +62,7 @@ func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot
 }
 
 func LambdaHandler() {
-	c, err := GetConfig()
+	c, err := services.GetConfig()
 	if err != nil {
 		log.Fatalf("Could not parse config: %v", err)
 	}

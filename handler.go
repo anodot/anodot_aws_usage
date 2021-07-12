@@ -7,6 +7,7 @@ import (
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	services "github.com/usage-lambda/pkg/aws"
 )
 
 type SyncMetricList struct {
@@ -31,14 +32,14 @@ func (el *ErrorList) Append(err error) {
 	el.errors = append(el.errors, err)
 }
 
-func Handle(resources []*MonitoredResource, wg *sync.WaitGroup, sess *session.Session, cloudwatchsvc *cloudwatch.CloudWatch, ml *SyncMetricList, el *ErrorList) {
+func Handle(resources []*services.MonitoredResource, wg *sync.WaitGroup, sess *session.Session, cloudwatchsvc *cloudwatch.CloudWatch, ml *SyncMetricList, el *ErrorList) {
 
 	for _, resource := range resources {
 		wg.Add(1)
 		rs := resource
 		session_copy := sess
 
-		go func(wg *sync.WaitGroup, ss *session.Session, rs *MonitoredResource) {
+		go func(wg *sync.WaitGroup, ss *session.Session, rs *services.MonitoredResource) {
 			defer wg.Done()
 
 			metrics, err := rs.MFunction(ss, cloudwatchsvc, rs)
