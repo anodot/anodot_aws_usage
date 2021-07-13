@@ -129,7 +129,7 @@ func GetEBSCustomMetrics() []CustomMetricDefinition {
 		CustomMetricDefinition{
 			Name:       "size",
 			Alias:      "Size",
-			TargetType: "counter",
+			TargetType: "sum",
 		},
 	}
 }

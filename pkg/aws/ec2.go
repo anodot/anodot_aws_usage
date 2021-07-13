@@ -182,7 +182,7 @@ func GetEc2CustomMetrics() []CustomMetricDefinition {
 		CustomMetricDefinition{
 			Name:       "cpu_count",
 			Alias:      "CoreCount",
-			TargetType: "counter",
+			TargetType: "sum",
 		},
 	}
 }

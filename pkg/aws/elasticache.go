@@ -60,7 +60,7 @@ func GetElasticacheCustomMetrics() []CustomMetricDefinition {
 		CustomMetricDefinition{
 			Name:       "cache_nodes_count",
 			Alias:      "CacheNodesCount",
-			TargetType: "counter",
+			TargetType: "sum",
 		},
 	}
 }
