@@ -8,6 +8,7 @@ import (
 
 	"github.com/anodot/anodot-common/pkg/metrics"
 	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -204,7 +205,7 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 		"anodot-collector":    "aws",
 	}
 
-	for _, v := range ins.Tags {
+	/*for _, v := range ins.Tags {
 		if len(*v.Key) > 50 || len(*v.Value) < 2 {
 			continue
 		}
@@ -212,7 +213,7 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 			break
 		}
 		properties[escape(*v.Key)] = escape(*v.Value)
-	}
+	}*/
 
 	for k, v := range properties {
 		if len(v) > 50 || len(v) < 2 {
@@ -222,13 +223,33 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 	return properties
 }
 
+func getCpuCountMetric30(ins []Instance) []metrics3.AnodotMetrics30 {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
+	for _, i := range ins {
+
+		/*if accountId != "" {
+			properties["account_id"] = accountId
+		}*/
+
+		metric := metrics3.AnodotMetrics30{
+			Dimensions:   GetEc2MetricProperties(i),
+			Timestamp:    metrics3.AnodotTimestamp{time.Now()},
+			Measurements: map[string]float64{"cpu_count": float64(i.CoreCount)},
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics
+}
+
 func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 	metricList := make([]metricsAnodot.Anodot20Metric, 0)
 	for _, i := range ins {
 		properties := GetEc2MetricProperties(i)
 		/*if accountId != "" {
 			properties["account_id"] = accountId
-		}*/
+		}
+		*/
 		properties["what"] = "cpu_count"
 		metric := metrics.Anodot20Metric{
 			Properties: properties,
@@ -252,6 +273,22 @@ func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
 	}
 
 	return metricList
+}
+
+func getVirtualCpuCountMetric30(ins []Instance) []metrics3.AnodotMetrics30 {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
+
+	for _, i := range ins {
+		vcpu := i.CoreCount * i.ThreadsPerCore
+		metric := metrics3.AnodotMetrics30{
+			Dimensions:   GetEc2MetricProperties(i),
+			Timestamp:    metrics3.AnodotTimestamp{time.Now()},
+			Measurements: map[string]float64{"vcpu_count": float64(vcpu)},
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics
 }
 
 func getVirtualCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
@@ -300,6 +337,64 @@ func GetEc2CloudwatchMetrics(resource *MonitoredResource, instances []Instance) 
 	return metrics, nil
 }
 
+func GetEc2Metrics30(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
+
+	instanceFetcher := CreateEC2Fetcher(session)
+
+	cloudWatchFetcher := CloudWatchFetcher{
+		cloudwatchSvc: cloudwatchSvc,
+	}
+	instances, err := instanceFetcher.GetInstances()
+	if err != nil {
+		log.Printf("Could not fetch EC2 instances from AWS %v", err)
+		return metrics, err
+	}
+
+	log.Printf("Found %d instances to process \n", len(instances))
+	cmetrics, err := GetEc2CloudwatchMetrics(resource, instances)
+	if err != nil {
+		log.Printf("Error: %v", err)
+		return metrics, err
+	}
+
+	if len(cmetrics) > 0 {
+		metricdatainput := NewGetMetricDataInput(cmetrics)
+		metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+		if err != nil {
+			log.Printf("Error during EC2 metrics processing: %v", err)
+			return metrics, err
+		}
+
+		for _, m := range cmetrics {
+			for _, mr := range metricdataresults {
+				if *mr.Id == m.MStat.Id {
+					i := m.Resource.(Instance)
+					metrics = append(
+						metrics,
+						GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, GetEc2MetricProperties(i))...,
+					)
+				}
+			}
+		}
+	}
+
+	if len(resource.CustomMetrics) > 0 {
+		for _, cm := range resource.CustomMetrics {
+			if cm == "CoreCount" {
+				log.Printf("Processing EC2 custom metric CoreCount\n")
+				metrics = append(metrics, getCpuCountMetric30(instances)...)
+			}
+			if cm == "VCpuCount" {
+				log.Printf("Processing EC2 custom metric VCpuCount\n")
+				metrics = append(metrics, getVirtualCpuCountMetric30(instances)...)
+			}
+		}
+	}
+
+	return metrics, nil
+}
+
 func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
 	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
 	instanceFetcher := CreateEC2Fetcher(session)
@@ -310,6 +405,7 @@ func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 	for _, t := range resource.Tags {
 		instanceFetcher.SetTag(t.Name, t.Value)
 	}
+
 	instances, err := instanceFetcher.GetInstances()
 	if err != nil {
 		log.Printf("Could not fetch EC2 instances from AWS %v", err)
