@@ -6,19 +6,28 @@ import (
 	"strings"
 
 	"github.com/manifoldco/promptui"
+	"gopkg.in/yaml.v3"
 )
 
 const green = "\u001b[32m"
 const red = "\u001b[31m"
 const reset = "\u001b[0m"
 
+type Params struct {
+	token       string
+	anodotUrl   string
+	accountName string
+	accessKey   string
+}
+
 var metricsButtons = []string{"Default (All metrics above)", "Done"}
 
 //var serviceButtons = []string{"Default (All services above)", "Done"}
 
 var metrics = map[string][]string{
-	"EC2": []string{"CoreCount", "VCpuCount", "NetworkOut", "NetworkIn"},
-	"EBS": []string{"Size"},
+	"ElastiCache": []string{"CacheNodesCount", "CPUUtilization"},
+	"EC2":         []string{"CoreCount", "VCpuCount", "NetworkOut", "NetworkIn"},
+	"EBS":         []string{"Size"},
 	"S3": []string{"BucketSizeBytes", "NumberOfObjects", "AllRequests", "GetRequests",
 		"PutRequests", "DeleteRequests", "HeadRequests",
 		"SelectRequests", "ListRequests"},
@@ -32,7 +41,15 @@ var metrics = map[string][]string{
 		"ProvisionedWriteCapacityUnits", "ConsumedReadCapacityUnits", "ProvisionedReadCapacityUnits"},
 }
 
-var services = []string{"EC2", "EBS", "S3", "NatGateway", "ELB", "Efs", "DynamoDB", "Cloudfront", "Default (All services above)", "Done"}
+var servicesWithTags = map[string]bool{
+	"EC2":        true,
+	"EBS":        true,
+	"Efs":        true,
+	"ELB":        true,
+	"NatGateway": true,
+}
+
+var services = []string{"EC2", "EBS", "S3", "NatGateway", "ELB", "Efs", "DynamoDB", "Cloudfront", "ElastiCache", "Default (All services above)", "Done"}
 
 var regions = []string{
 	"eu-north-1",
@@ -55,37 +72,32 @@ var regions = []string{
 
 var selectedRegions []string
 
-type Metric struct {
-	name string
-}
-
-type Service struct {
-	name    string
-	metrics []Metric
-}
-
-type RegionConfig struct {
-	region   string
-	services []Service
-}
-
-type Params struct {
-	token       string
-	anodotUrl   string
-	accountName string
-}
-
-func GetAllMetricsAllServices() []Service {
-	services := make([]Service, 0)
+func GetAllMetricsAllServices() []ServiceN {
+	services := make([]ServiceN, 0)
 	for s, m := range metrics {
-		metrics_ := make([]Metric, 0)
+		cms := make([]string, 0)
+		cwms := make([]CloudWatchMetric, 0)
 		for _, metric := range m {
 			if metric == "Done" {
 				break
 			}
-			metrics_ = append(metrics_, Metric{name: metric})
+			allCwms, ok := cloudwatchMetrics[s]
+			if !ok {
+				cms = append(cms, metric)
+			} else {
+				if cwm, ok := allCwms[metric]; ok {
+					cwms = append(cwms, cwm)
+				}
+			}
+
 		}
-		services = append(services, Service{name: s, metrics: metrics_})
+		services = append(services,
+			ServiceN{
+				Name:              s,
+				CloudWatchMetrics: cwms,
+				CustomMetrics:     cms,
+			},
+		)
 	}
 	return services
 }
@@ -183,12 +195,12 @@ func removeDuplicates(list []string) []string {
 	return new
 }
 
-func removeDuplicatesMetrics(list []Metric) []Metric {
-	new := make([]Metric, 0)
+func removeDuplicatesMetrics(list []string) []string {
+	new := make([]string, 0)
 	ifPresent := false
 	for _, s := range list {
 		for _, snew := range new {
-			if s.name == snew.name {
+			if s == snew {
 				ifPresent = true
 			}
 		}
@@ -213,14 +225,14 @@ func removeCloudfront(list []string) []string {
 	return services
 }
 
-func removeDuplicatesService(list []Service) []Service {
-	new := make([]Service, 0)
+func removeDuplicatesService(list []ServiceN) []ServiceN {
+	new := make([]ServiceN, 0)
 	ifPresent := false
-	var s Service
+	var s ServiceN
 	for i := len(list) - 1; i >= 0; i-- {
 		s = list[i]
 		for _, snew := range new {
-			if s.name == snew.name {
+			if s.Name == snew.Name {
 				ifPresent = true
 			}
 		}
@@ -242,14 +254,46 @@ func ListToString(list []string) string {
 	return r
 }
 
-func ChooseMetrics(service string) ([]Metric, error) {
-	metrics_ := make([]Metric, 0)
-	metricsname := make([]string, 0)
+func SetDimenionsTags() ([]string, error) {
+	tags := make([]string, 0)
+	options := []string{
+		"Add tag based dimension",
+		"Skip",
+	}
+	v := func(s string) error {
+		if len(s) == 0 {
+			return fmt.Errorf("Tag name can't be blank")
+		}
+		return nil
+	}
+
+	for {
+		r, err := CustomSelect("Do you want to set which tags will be used as dimensions ?", options)
+		if err != nil {
+			return tags, err
+		}
+
+		if r == "Continue" || r == "Skip" {
+			break
+		}
+
+		s, err := CustomPrompt(v, "What tag you want to use as a dimension ?")
+		tags = append(tags, s)
+		options[0] = "Add one more tag based dimension"
+		options[1] = "Continue"
+	}
+
+	return tags, nil
+}
+
+func ChooseMetrics(service string) ([]string, error) {
+	metrics_ := make([]string, 0)
+
 	metricmsg := "What metrics do you need"
 	for {
 		metric, err := CustomSelect(metricmsg, append(metrics[service], metricsButtons...))
 		if err != nil {
-			return make([]Metric, 0), err
+			return make([]string, 0), err
 		}
 		metricmsg = "What metrics do you need"
 
@@ -263,10 +307,9 @@ func ChooseMetrics(service string) ([]Metric, error) {
 		}
 
 		if metric == "Default (All metrics above)" {
-
-			metrics_ = make([]Metric, 0)
+			metrics_ = make([]string, 0)
 			for _, m := range metrics[service] {
-				metrics_ = append(metrics_, Metric{name: m})
+				metrics_ = append(metrics_, m)
 			}
 			fmt.Printf("You chose next metrics for service: %s", service)
 			fmt.Println(ListToString(metrics[service]))
@@ -274,10 +317,9 @@ func ChooseMetrics(service string) ([]Metric, error) {
 			return metrics_, nil
 		}
 
-		metricsname = append(metricsname, metric)
-		metrics_ = append(metrics_, Metric{name: metric})
+		metrics_ = append(metrics_, metric)
 		fmt.Printf("You chose next metrics for service: %s", service)
-		fmt.Println(ListToString(metricsname))
+		fmt.Println(ListToString(metrics_))
 	}
 	return removeDuplicatesMetrics(metrics_), nil
 }
@@ -292,8 +334,8 @@ func removeUsedRegion(regions []string, region string) []string {
 	return regions_
 }
 
-func ChoseService(region string) ([]Service, error) {
-	chosenservices := make([]Service, 0)
+func ChoseService(region string) ([]ServiceN, error) {
+	chosenservices := make([]ServiceN, 0)
 	servicenames := make([]string, 0)
 	selectmsg := "What services do you need"
 
@@ -315,21 +357,59 @@ func ChoseService(region string) ([]Service, error) {
 		}
 
 		if service == "Default (All services above)" {
-			chosenservices = GetAllMetricsAllServices()
+			chosenservices = make([]ServiceN, 0)
+			tags, err := SetDimenionsTags()
+			if err != nil {
+				return make([]ServiceN, 0), err
+			}
+
+			for _, srv := range GetAllMetricsAllServices() {
+				if _, ok := servicesWithTags[srv.Name]; ok {
+					srv.Tags = tags
+				}
+				chosenservices = append(chosenservices, srv)
+			}
 			services = removeCloudfront(services)
 			return chosenservices, nil
 		}
 
 		metrics_, err := ChooseMetrics(service)
 		if err != nil {
-			return make([]Service, 0), err
+			return make([]ServiceN, 0), err
+		}
+
+		cwms := make([]CloudWatchMetric, 0)
+		cms := make([]string, 0)
+		for _, m := range metrics_ {
+			allCwms, ok := cloudwatchMetrics[service]
+			if !ok {
+				cms = metrics_
+				break
+			}
+
+			if cwm, ok := allCwms[m]; ok {
+				cwms = append(cwms, cwm)
+			} else {
+				cms = append(cms, m)
+			}
 		}
 
 		if service == "Cloudfront" {
 			services = removeCloudfront(services)
 		}
 
-		chosenservices = append(chosenservices, Service{name: service, metrics: metrics_})
+		tags, err := SetDimenionsTags()
+		if err != nil {
+			fmt.Printf("Prompt failed %v\n", err)
+		}
+
+		chosenservices = append(chosenservices, ServiceN{
+			Tags:              tags,
+			Name:              service,
+			CustomMetrics:     cms,
+			CloudWatchMetrics: cwms,
+		},
+		)
 		servicenames = append(servicenames, service)
 
 		fmt.Printf("You chose next services for region: %s", region)
@@ -346,7 +426,7 @@ func ChoseParams() (Params, error) {
 	}
 	p.anodotUrl = url
 
-	token, err := CustomPrompt(ValidateToken, "Anodot Token")
+	token, err := CustomPrompt(ValidateToken, "Anodot Data Token")
 	if err != nil {
 		return p, err
 	}
@@ -356,8 +436,13 @@ func ChoseParams() (Params, error) {
 	if err != nil {
 		return p, err
 	}
-
 	p.accountName = accountName
+
+	accessKey, err := CustomPrompt(ValidateToken, "Anodot access key(api key)")
+	if err != nil {
+		return p, err
+	}
+	p.accessKey = accessKey
 	return p, nil
 }
 
@@ -394,29 +479,40 @@ func WriteConfig(data []byte) error {
 }
 
 func main() {
-	configs := make([]RegionConfig, 0)
+
 	params, err := ChoseParams()
 
 	if err != nil {
 		fmt.Printf("Something went wrong %v", err)
 		os.Exit(3)
 	}
-
+	c := Config{
+		AccessKey:      params.accessKey,
+		AccountId:      params.accountName,
+		AnodotToken:    params.token,
+		AnodotUrl:      params.anodotUrl,
+		RegionsConfigs: make(map[string]map[string]ServiceN),
+	}
 	for {
+
 		region, err := ChoseRegion()
 		if err != nil {
 			fmt.Printf("Error occured %v", err)
 			break
 		}
-		regionconfig := RegionConfig{region: region}
+
+		c.RegionsConfigs[region] = make(map[string]ServiceN)
 
 		fmt.Println("Hello please choose services you need to monitor: ")
 		chosenservices, err := ChoseService(region)
 		if err != nil {
 			break
 		}
-		regionconfig.services = chosenservices
-		configs = append(configs, regionconfig)
+
+		for _, service := range chosenservices {
+			c.RegionsConfigs[region][service.Name] = service
+		}
+
 		prompt := promptui.Select{
 			Label: "Do you want do add another region ?",
 			Items: []string{"Yes", "No"},
@@ -430,13 +526,17 @@ func main() {
 		if newregion == "No" {
 			break
 		}
+
 	}
 
-	confstr := RenderConfig(params, configs)
-	fmt.Println(confstr)
+	b, err := yaml.Marshal(c)
+	if err != nil {
+		panic(err)
+	}
 
-	if err := WriteConfig([]byte(confstr)); err != nil {
+	if err := WriteConfig(b); err != nil {
 		fmt.Println(err)
 		os.Exit(127)
 	}
+	fmt.Println(string(b))
 }
