@@ -1,41 +1,24 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"net/url"
 	"sync"
 
-	"github.com/anodot/anodot-common/pkg/metrics"
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
-
-	//"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	services "github.com/usage-lambda/pkg/aws"
+	//"github.com/aws/aws-lambda-go/lambda"
 )
 
 const metricsPerSecond = 1000
 
+var schemaIds map[string]string
 var accountId string
 
-func Send(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot.Anodot20Client) error {
-	response, err := submiter.SubmitMetrics(metrics)
-
-	if err != nil || response.HasErrors() {
-		log.Fatalf("Error during sending metrics to Anodot response: %v   Error: %v", response.RawResponse(), err)
-		if response.HasErrors() {
-			return errors.New(response.ErrorMessage())
-		}
-	} else {
-		log.Printf("Successfully pushed %d metric to anodot \n", len(metrics))
-	}
-	return err
-}
-
-func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot.Anodot20Client) error {
+func SendMetrics(metrics []metrics3.AnodotMetrics30, submiter *metrics3.Anodot30Client) error {
 	var previousIndex int = 0
 	var index int = 0
 	var totalCount int = 0
@@ -46,11 +29,11 @@ func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot
 		if index > len(metrics) {
 			index = len(metrics)
 		}
-		var metricsSlice []metricsAnodot.Anodot20Metric = metrics[previousIndex:index]
-		err := Send(metricsSlice, submiter)
+		var metricsSlice []metrics3.AnodotMetrics30 = metrics[previousIndex:index]
+		err := SubmitMetrics(*submiter, metricsSlice)
 		if err != nil {
 			log.Printf("Retry sending metrics")
-			err := Send(metricsSlice, submiter)
+			err := SubmitMetrics(*submiter, metricsSlice)
 			if err != nil {
 				return err
 			}
@@ -61,21 +44,37 @@ func SendMetrics(metrics []metricsAnodot.Anodot20Metric, submiter *metricsAnodot
 	return nil
 }
 
-func LambdaHandler() {
-	c, err := services.GetConfig()
+func SubmitMetrics(client metrics3.Anodot30Client, metrics []metrics3.AnodotMetrics30) error {
+	respSubmit, err := client.SubmitMetrics(metrics)
+	if err != nil {
+		log.Printf("failed submition failed %v", err)
+		return err
+	}
+	if respSubmit.HasErrors() {
+		log.Printf("failed submition failed: %s", respSubmit.ErrorMessage())
+		return fmt.Errorf(respSubmit.ErrorMessage())
+	}
+	return nil
+}
+
+func main() {
+	var wg sync.WaitGroup
+
+	schemaIds = make(map[string]string, 0)
+
+	c, err := GetConfig()
 	if err != nil {
 		log.Fatalf("Could not parse config: %v", err)
 	}
+	accountId = c.AccountId
+
 	ml := &SyncMetricList{
-		metrics: make([]metricsAnodot.Anodot20Metric, 0),
+		metrics: make([]metrics3.AnodotMetrics30, 0),
 	}
 
 	el := &ErrorList{
 		errors: make([]error, 0),
 	}
-
-	accountId = c.AccountId
-	var wg sync.WaitGroup
 
 	session := session.Must(session.NewSession(&aws.Config{Region: aws.String(c.Region)}))
 	cloudwatchSvc := cloudwatch.New(session)
@@ -85,31 +84,69 @@ func LambdaHandler() {
 		log.Fatalf("Could not parse Anodot url: %v", err)
 	}
 
-	metricSubmitter, err := metrics.NewAnodot20Client(*url, c.AnodotToken, nil)
+	client, err := metrics3.NewAnodot30Client(*url, &c.AccessKey, &c.AnodotToken, nil)
 	if err != nil {
-		log.Fatalf("Could create Anodot metrc submitter: %v", err)
+		log.Fatalf("failed to create anodot30 client: %v", err)
 	}
 
-	Handle(c.RegionsConfigs[c.Region].Resources, &wg, session, cloudwatchSvc, ml, el)
+	err = CleanSchemas(*client, accountId)
+	if err != nil {
+		log.Fatalf("failed to clean metrics schemas: %v", err)
+	}
+	schemas, err := GetSchemas(c)
+	if err != nil {
+		log.Fatalf("failed to get metrics schemas: %v", err)
+	}
+
+	err = CreateSchemas(*client, schemas)
+	if err != nil {
+		log.Fatalf("failed to create metrics schemas: %v", err)
+	}
+
+	respGetschemas, err := client.GetSchemas()
+	if err != nil {
+		log.Fatalf("failed to fetch metrics schemas: %v", err)
+	}
+
+	if respGetschemas.HasErrors() {
+		panic(respGetschemas.ErrorMessage())
+	}
+
+	for _, schema := range respGetschemas.Schemas {
+		for _, service := range GetSupportedService() {
+			if schema.Name == schemaName(accountId, service) {
+				schemaIds[service] = schema.Id
+			}
+		}
+	}
+
+	Handle(c.RegionsConfigs[c.Region], &wg, session, cloudwatchSvc, ml, el)
 	wg.Wait()
 
 	if len(el.errors) > 0 {
 		for _, e := range el.errors {
 			log.Printf("ERROR occured: %v", e)
 		}
+		log.Fatalf("exiting...")
 	}
+
+	/*for _, m := range ml.metrics {
+		fmt.Println(m)
+	}*/
 
 	if len(ml.metrics) > 0 {
 		log.Printf("Total fetched metrics count %d", len(ml.metrics))
-		err := SendMetrics(ml.metrics, metricSubmitter)
+
+		err := SendMetrics(ml.metrics, client)
 		if err != nil {
 			log.Fatalf("Failed to send metrics")
 		}
 	} else {
 		log.Print("No any metrics to push ")
 	}
+
 }
 
-func main() {
+/*func main() {
 	lambda.Start(LambdaHandler)
-}
+}*/
