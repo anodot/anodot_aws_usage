@@ -89,18 +89,11 @@ func main() {
 		log.Fatalf("failed to create anodot30 client: %v", err)
 	}
 
-	err = CleanSchemas(*client, accountId)
-	if err != nil {
-		log.Fatalf("failed to clean metrics schemas: %v", err)
-	}
-	schemas, err := GetSchemas(c)
+	sm := SchemasManager{*client}
+
+	schemas, err := GetSchemasFromConfig(c)
 	if err != nil {
 		log.Fatalf("failed to get metrics schemas: %v", err)
-	}
-
-	err = CreateSchemas(*client, schemas)
-	if err != nil {
-		log.Fatalf("failed to create metrics schemas: %v", err)
 	}
 
 	respGetschemas, err := client.GetSchemas()
@@ -109,7 +102,12 @@ func main() {
 	}
 
 	if respGetschemas.HasErrors() {
-		panic(respGetschemas.ErrorMessage())
+		log.Fatalf(respGetschemas.ErrorMessage())
+	}
+
+	err = sm.UpdateSchemas(schemas, respGetschemas.Schemas)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	for _, schema := range respGetschemas.Schemas {
@@ -129,10 +127,6 @@ func main() {
 		}
 		log.Fatalf("exiting...")
 	}
-
-	/*for _, m := range ml.metrics {
-		fmt.Println(m)
-	}*/
 
 	if len(ml.metrics) > 0 {
 		log.Printf("Total fetched metrics count %d", len(ml.metrics))

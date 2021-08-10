@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"reflect"
 
 	"github.com/anodot/anodot-common/pkg/metrics3"
 )
@@ -10,39 +12,58 @@ func schemaName(accountId string, sname string) string {
 	return accountId + "_" + sname + "_usage_schema"
 }
 
-func CleanSchemas(client metrics3.Anodot30Client, accountId string) error {
-	resp, err := client.GetSchemas()
+type SchemasManager struct {
+	client metrics3.Anodot30Client
+}
+
+func (sm *SchemasManager) DeleteSchema(schema metrics3.AnodotMetricsSchema) error {
+	delResp, err := sm.client.DeleteSchema(schema.Id)
 	if err != nil {
 		return err
 	}
-	if resp.HasErrors() {
-		return fmt.Errorf("failed to fetch schemas: %s", resp.ErrorMessage())
-	}
-
-	for _, schema := range resp.Schemas {
-		for _, service := range GetSupportedService() {
-			if schema.Name == schemaName(accountId, service) {
-				delResp, err := client.DeleteSchema(schema.Id)
-				if err != nil {
-					return err
-				}
-				if delResp.HasErrors() {
-					return fmt.Errorf("failed to delete schema %s:\n%s", schema.Name, resp.ErrorMessage())
-				}
-			}
-		}
+	if delResp.HasErrors() {
+		return fmt.Errorf("failed to delete schema %s:\n%s", schema.Name, delResp.ErrorMessage())
 	}
 	return nil
 }
 
-func CreateSchemas(client metrics3.Anodot30Client, schemas []metrics3.AnodotMetricsSchema) error {
-	for _, schema := range schemas {
-		resp, err := client.CreateSchema(schema)
-		if err != nil {
-			return err
-		}
-		if resp.HasErrors() {
-			return fmt.Errorf("failed to create schema %s:\n%s", schema.Name, resp.ErrorMessage())
+func (sm *SchemasManager) CreateSchema(schema metrics3.AnodotMetricsSchema) error {
+	resp, err := sm.client.CreateSchema(schema)
+	if err != nil {
+		return err
+	}
+	if resp.HasErrors() {
+		return fmt.Errorf("failed to create schema %s:\n%s", schema.Name, resp.ErrorMessage())
+	}
+	return nil
+}
+
+func (sm *SchemasManager) UpdateSchemas(snew, sold []metrics3.AnodotMetricsSchema) error {
+	for _, s2 := range snew {
+		for i1, s1 := range sold {
+			if s1.Name == s2.Name {
+				if !isSchemasEq(s1, s2) {
+					log.Printf("schema config for %s has been changed, will recreate it", s1.Name)
+					err := sm.DeleteSchema(s1)
+					if err != nil {
+						return fmt.Errorf("failed to delete schema %s:\n%v", s1.Name, err)
+					}
+					err = sm.CreateSchema(s2)
+					if err != nil {
+						return fmt.Errorf("failed to create schema %s:\n%v", s2.Name, err)
+					}
+				}
+				break
+			} else {
+				// In case when schema is missed - create it
+				if i1 == len(sold)-1 {
+					log.Printf("schema %s is absent, will create it", s2.Name)
+					err := sm.CreateSchema(s2)
+					if err != nil {
+						return fmt.Errorf("failed to create schema %s:\n%v", s2.Name, err)
+					}
+				}
+			}
 		}
 	}
 	return nil
@@ -77,7 +98,7 @@ func GetCustomMetricsAndDimensions(servicName string, resource *MonitoredResourc
 	}
 }
 
-func GetSchemas(config Config) ([]metrics3.AnodotMetricsSchema, error) {
+func GetNewSchemas(config Config) ([]metrics3.AnodotMetricsSchema, error) {
 	schemas := make([]metrics3.AnodotMetricsSchema, 0)
 	measurments := make(map[string]map[string]metrics3.MeasurmentBase)
 	dimensions := make(map[string][]string, 0)
@@ -134,4 +155,23 @@ func GetSchemas(config Config) ([]metrics3.AnodotMetricsSchema, error) {
 		})
 	}
 	return schemas, nil
+}
+
+func isSchemasEq(s1, s2 metrics3.AnodotMetricsSchema) bool {
+	if !reflect.DeepEqual(s1.Dimensions, s2.Dimensions) {
+		return false
+	}
+
+	if !reflect.DeepEqual(s1.Measurements, s2.Measurements) {
+		return false
+	}
+
+	if !reflect.DeepEqual(s1.MissingDimPolicy, s2.MissingDimPolicy) {
+		return false
+	}
+
+	if s1.Name != s2.Name {
+		return false
+	}
+	return true
 }
