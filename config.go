@@ -3,10 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
-
-	"log"
 
 	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws"
@@ -86,18 +83,18 @@ func GetConfig() (Config, error) {
 	}
 	c.Region = region
 
-	fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
+	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return c, err
-	}
+	}*/
 
-	/*fileData, err := GetConfigFromS3(lambda_bucket, region)
+	fileData, err := GetConfigFromS3(lambda_bucket, region)
 	if err != nil {
 		fmt.Printf("Can not get config from s3 : %v\n", err)
 		return c, err
 	}
-	*/
+
 	err = yaml.Unmarshal([]byte(fileData), &c)
 	if err != nil {
 		fmt.Printf("Can not Unmarshal config : %v\n", err)

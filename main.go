@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/anodot/anodot-common/pkg/metrics3"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -57,7 +58,7 @@ func SubmitMetrics(client metrics3.Anodot30Client, metrics []metrics3.AnodotMetr
 	return nil
 }
 
-func main() {
+func LambdaHandler() {
 	var wg sync.WaitGroup
 
 	schemaIds = make(map[string]string, 0)
@@ -109,6 +110,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// fetch schemas again after schema update
+	respGetschemas, err = client.GetSchemas()
+	if err != nil {
+		log.Fatalf("failed to fetch metrics schemas: %v", err)
+	}
+
+	if respGetschemas.HasErrors() {
+		log.Fatalf(respGetschemas.ErrorMessage())
+	}
 
 	for _, schema := range respGetschemas.Schemas {
 		for _, service := range GetSupportedService() {
@@ -141,6 +151,6 @@ func main() {
 
 }
 
-/*func main() {
+func main() {
 	lambda.Start(LambdaHandler)
-}*/
+}
