@@ -236,13 +236,9 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 func getCpuCountMetric30(ins []Instance) []metrics3.AnodotMetrics30 {
 	metrics := make([]metrics3.AnodotMetrics30, 0)
 	for _, i := range ins {
-
-		/*if accountId != "" {
-			properties["account_id"] = accountId
-		}*/
-
+		properties := GetEc2MetricProperties(i)
 		metric := metrics3.AnodotMetrics30{
-			Dimensions:   GetEc2MetricProperties(i),
+			Dimensions:   properties,
 			Timestamp:    metrics3.AnodotTimestamp{time.Now()},
 			Measurements: map[string]float64{"cpu_count": float64(i.CoreCount)},
 		}

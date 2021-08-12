@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/anodot/anodot-common/pkg/metrics3"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -18,11 +19,21 @@ const metricsPerSecond = 1000
 var schemaIds map[string]string
 var accountId string
 
+func SetAccountId(in []metrics3.AnodotMetrics30) []metrics3.AnodotMetrics30 {
+	for _, m := range in {
+		if accountId != "" {
+			m.Dimensions["account_id"] = accountId
+		}
+	}
+	return in
+}
+
 func SendMetrics(metrics []metrics3.AnodotMetrics30, submiter *metrics3.Anodot30Client) error {
 	var previousIndex int = 0
 	var index int = 0
 	var totalCount int = 0
 
+	metrics = SetAccountId(metrics)
 	for index < len(metrics) {
 		previousIndex = index
 		index = index + metricsPerSecond
@@ -61,7 +72,7 @@ func SubmitMetrics(client metrics3.Anodot30Client, metrics []metrics3.AnodotMetr
 	return nil
 }
 
-func main() {
+func LambdaHandler() {
 	var wg sync.WaitGroup
 
 	schemaIds = make(map[string]string, 0)
@@ -154,6 +165,6 @@ func main() {
 
 }
 
-/*func main() {
+func main() {
 	lambda.Start(LambdaHandler)
-}*/
+}

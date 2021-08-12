@@ -142,7 +142,7 @@ func GetSchemasFromConfig(config Config) ([]metrics3.AnodotMetricsSchema, error)
 				return nil, fmt.Errorf("unkown service %s", servicName)
 			}
 
-			dimensions[servicName] = dims
+			dimensions[servicName] = append(dims, "account_id")
 			// Add custom metric to schema
 			for _, customMetric := range service.CustomMetrics {
 				for _, customMetricDef := range customMetricsDefs {

@@ -178,13 +178,9 @@ func GetEBSMetricProperties(ebs EBS) map[string]string {
 func getEBSSizeMetric(ebs []EBS) []metrics3.AnodotMetrics30 {
 	metrics := make([]metrics3.AnodotMetrics30, 0)
 	for _, e := range ebs {
-
-		/*if accountId != "" {
-			properties["account_id"] = accountId
-		}*/
-
+		properties := GetEBSMetricProperties(e)
 		metric := metrics3.AnodotMetrics30{
-			Dimensions:   GetEBSMetricProperties(e),
+			Dimensions:   properties,
 			Timestamp:    metrics3.AnodotTimestamp{time.Now()},
 			Measurements: map[string]float64{"size": float64(e.Size)},
 		}

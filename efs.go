@@ -170,12 +170,6 @@ func getEfsStandardSizetMetric(efss []Efs) []metrics3.AnodotMetrics30 {
 }
 
 func addAnodotMetric(efs Efs, what string, value float64) metrics3.AnodotMetrics30 {
-
-	/*if accountId != "" {
-		properties["account_id"] = accountId
-	}*/
-	//properties["target_type"] = "counter"
-
 	metric := metrics3.AnodotMetrics30{
 		Dimensions:   GetEfsMetricProperties(efs),
 		Timestamp:    metrics3.AnodotTimestamp{time.Now()},
