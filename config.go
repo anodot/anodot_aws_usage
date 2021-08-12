@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/anodot/anodot-common/pkg/metrics3"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
 	"gopkg.in/yaml.v2"
 )
@@ -70,17 +72,35 @@ func GetMetricsFunction(servicName string) MetricFunction {
 	return nil
 }
 
+func GetSecretValue(secretId, region string) (*string, error) {
+	//session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	session := session.New()
+	i := secretsmanager.GetSecretValueInput{
+		SecretId: aws.String(secretId),
+	}
+	svc := secretsmanager.New(session)
+	o, err := svc.GetSecretValue(&i)
+	if err != nil {
+		return nil, err
+	}
+	return o.SecretString, nil
+}
+
 func GetConfig() (Config, error) {
 	anodotUrl := os.Getenv("anodotUrl")
+
 	token := os.Getenv("token")
 	region := os.Getenv("region")
 	lambda_bucket := os.Getenv("lambda_bucket")
-	accountId := os.Getenv("accountName")
+
+	accountId := os.Getenv("accountId")
+
 	c := Config{}
 
-	if region == "" || lambda_bucket == "" {
-		return Config{}, fmt.Errorf("Please provide region and lambda_bucket (lambda s3 bucket) as lambda functions env var")
+	if region == "" || lambda_bucket == "" || accountId == "" {
+		return Config{}, fmt.Errorf("Please provide region, accountId and lambda_bucket (lambda s3 bucket) as lambda functions env var")
 	}
+
 	c.Region = region
 
 	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
@@ -112,6 +132,26 @@ func GetConfig() (Config, error) {
 	if accountId != "" {
 		c.AccountId = accountId
 	}
+
+	accessKey, err := GetSecretValue(accountId+"_anodot_access_key", c.Region)
+	if err != nil {
+		log.Fatalf("failed to fetch accessKey from  secrets manager: %v", err)
+	}
+
+	if accessKey == nil {
+		log.Fatalf("failed to fetch accessKey from  secrets manager: accesKey can't be blank")
+	}
+
+	c.AccessKey = *accessKey
+
+	dataToken, err := GetSecretValue(accountId+"_anodot_data_token", c.Region)
+	if err != nil {
+		log.Fatalf("failed to fetch anodot data token from  secrets manager: %v", err)
+	}
+	if accessKey == nil {
+		log.Fatalf("failed to fetch anodot data token from  secrets manager: data token can't be blank")
+	}
+	c.AnodotToken = *dataToken
 
 	if c.AnodotToken == "" || c.AnodotUrl == "" {
 		return c, fmt.Errorf("Too few arguments for lambda function. Please set token, anodotUrl with config file or with lambda env vars.")

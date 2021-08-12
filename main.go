@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/anodot/anodot-common/pkg/metrics3"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -48,17 +47,21 @@ func SendMetrics(metrics []metrics3.AnodotMetrics30, submiter *metrics3.Anodot30
 func SubmitMetrics(client metrics3.Anodot30Client, metrics []metrics3.AnodotMetrics30) error {
 	respSubmit, err := client.SubmitMetrics(metrics)
 	if err != nil {
-		log.Printf("failed submition failed %v", err)
+		log.Printf("submition failed: %v", err)
+		if respSubmit != nil {
+			log.Printf("http status: %v", respSubmit.HttpResponse.Status)
+		}
 		return err
 	}
 	if respSubmit.HasErrors() {
-		log.Printf("failed submition failed: %s", respSubmit.ErrorMessage())
+		log.Printf("submition failed: %s", respSubmit.ErrorMessage())
+		log.Printf("http status: %v", respSubmit.HttpResponse.Status)
 		return fmt.Errorf(respSubmit.ErrorMessage())
 	}
 	return nil
 }
 
-func LambdaHandler() {
+func main() {
 	var wg sync.WaitGroup
 
 	schemaIds = make(map[string]string, 0)
@@ -151,6 +154,6 @@ func LambdaHandler() {
 
 }
 
-func main() {
+/*func main() {
 	lambda.Start(LambdaHandler)
-}
+}*/

@@ -98,7 +98,32 @@ func GetCustomMetricsAndDimensions(servicName string, resource *MonitoredResourc
 	}
 }
 
-func GetNewSchemas(config Config) ([]metrics3.AnodotMetricsSchema, error) {
+func CleanSchemas(client metrics3.Anodot30Client, accountId string) error {
+	resp, err := client.GetSchemas()
+	if err != nil {
+		return err
+	}
+	if resp.HasErrors() {
+		return fmt.Errorf("failed to fetch schemas: %s", resp.ErrorMessage())
+	}
+
+	for _, schema := range resp.Schemas {
+		for _, service := range GetSupportedService() {
+			if schema.Name == schemaName(accountId, service) {
+				delResp, err := client.DeleteSchema(schema.Id)
+				if err != nil {
+					return err
+				}
+				if delResp.HasErrors() {
+					return fmt.Errorf("failed to delete schema %s:\n%s", schema.Name, resp.ErrorMessage())
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func GetSchemasFromConfig(config Config) ([]metrics3.AnodotMetricsSchema, error) {
 	schemas := make([]metrics3.AnodotMetricsSchema, 0)
 	measurments := make(map[string]map[string]metrics3.MeasurmentBase)
 	dimensions := make(map[string][]string, 0)

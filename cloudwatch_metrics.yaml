@@ -1,60 +1,222 @@
-us-east-1:
-  Cloudfront:
-    CloudWatchMetrics:
-    - Name: BytesDownloaded
-      Id: test1
-      Namespace: AWS/CloudFront
-      Period: 3600
-      Unit: None
-      Stat:  Average
-    - Name: Requests
-      Id: test1
-      Namespace: AWS/CloudFront
-      Period: 3600
-      Unit: None
-      Stat:  Average 
-    - Name: TotalErrorRate
-      Id: test1
-      Namespace: AWS/CloudFront
-      Period: 3600
-      Unit: Percent
-      Stat:  Average
-
-  S3:
-    CloudWatchMetrics:
-    - Name: BucketSizeBytes
-      Id: test1
-      Namespace: AWS/S3
-      Period: 3600
-      Unit: Bytes
-      Stat:  Average
-    - Name: NumberOfObjects
-      Id: test1
-      Namespace: AWS/S3
-      Period: 3600
-      Unit: Count
-      Stat:  Average
-
-  EBS:
-    CustomMetrics:
-      - Size
-  EC2:
-    CustomMetrics:
-      - CoreCount
-      - VCpuCount
-
-  ELB:
-    CloudWatchMetrics:   
-    - Name: RequestCount
-      Id: test1
-      Namespace: AWS/ELB
-      Period: 3600
-      Unit: Count
-      Stat:  Sum
-    - Name: EstimatedProcessedBytes
-      Id: test2
-      Namespace: AWS/ELB
-      Period: 3600
-      Unit: Bytes
-      Stat:  Average
-
+anodotUrl: https://api.anodot.com
+eu-central-1:
+    Cloudfront:
+        CloudWatchMetrics:
+            - Id: test1
+              Name: BytesDownloaded
+              Namespace: AWS/CloudFront
+              Period: "3600"
+              Unit: None
+              Stat: Average
+            - Id: test1
+              Name: Requests
+              Namespace: AWS/CloudFront
+              Period: "3600"
+              Unit: None
+              Stat: Average
+            - Id: test1
+              Name: TotalErrorRate
+              Namespace: AWS/CloudFront
+              Period: "3600"
+              Unit: None
+              Stat: Average
+    DynamoDB:
+        CloudWatchMetrics:
+            - Id: test1
+              Name: SuccessfulRequestLatency
+              Namespace: AWS/DynamoDB
+              Period: "3600"
+              Unit: Milliseconds
+              Stat: Average
+            - Id: test1
+              Name: ReturnedItemCount
+              Namespace: AWS/DynamoDB
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: ConsumedWriteCapacityUnits
+              Namespace: AWS/DynamoDB
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: ProvisionedWriteCapacityUnits
+              Namespace: AWS/DynamoDB
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: ConsumedReadCapacityUnits
+              Namespace: AWS/DynamoDB
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: ProvisionedReadCapacityUnits
+              Namespace: AWS/DynamoDB
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+    EBS:
+        DimensionsFromTags:
+            - Name
+            - stack
+        CustomMetrics:
+            - Size
+    EC2:
+        DimensionsFromTags:
+            - Name
+            - stack
+        CloudWatchMetrics:
+            - Id: test1
+              Name: NetworkOut
+              Namespace: AWS/EC2
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+            - Id: test1
+              Name: NetworkIn
+              Namespace: AWS/EC2
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+    ELB:
+        DimensionsFromTags:
+            - Name
+            - stack
+        CloudWatchMetrics:
+            - Id: test1
+              Name: RequestCount
+              Namespace: AWS/ELB
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: EstimatedProcessedBytes
+              Namespace: AWS/ELB
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+    Efs:
+        DimensionsFromTags:
+            - Name
+            - stack
+        CloudWatchMetrics:
+            - Id: test1
+              Name: DataWriteIOBytes
+              Namespace: AWS/EFS
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+            - Id: test1
+              Name: DataReadIOBytes
+              Namespace: AWS/EFS
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+    ElastiCache:
+        CloudWatchMetrics:
+            - Id: test1
+              Name: CPUUtilization
+              Namespace: AWS/ElastiCache
+              Period: "3600"
+              Unit: Percent
+              Stat: Average
+    NatGateway:
+        DimensionsFromTags:
+            - Name
+            - stack
+        CloudWatchMetrics:
+            - Id: test1
+              Name: BytesOutToSource
+              Namespace: AWS/NATGateway
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+            - Id: test1
+              Name: BytesOutToDestination
+              Namespace: AWS/NATGateway
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+            - Id: test1
+              Name: BytesInFromSource
+              Namespace: AWS/NATGateway
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+            - Id: test1
+              Name: BytesInFromDestination
+              Namespace: AWS/NATGateway
+              Period: "3600"
+              Unit: Bytes
+              Stat: Average
+            - Id: test1
+              Name: ActiveConnectionCount
+              Namespace: AWS/NATGateway
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: ConnectionEstablishedCount
+              Namespace: AWS/NATGateway
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+    S3:
+        CloudWatchMetrics:
+            - Id: test1
+              Name: BucketSizeBytes
+              Namespace: AWS/S3
+              Period: "86400"
+              Unit: Bytes
+              Stat: Average
+            - Id: test1
+              Name: NumberOfObjects
+              Namespace: AWS/S3
+              Period: "86400"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: AllRequests
+              Namespace: AWS/S3
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: GetRequests
+              Namespace: AWS/S3
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: PutRequests
+              Namespace: AWS/S3
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: DeleteRequests
+              Namespace: AWS/S3
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: HeadRequests
+              Namespace: AWS/S3
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: SelectRequests
+              Namespace: AWS/S3
+              Period: "3600"
+              Unit: Count
+              Stat: Sum
+            - Id: test1
+              Name: ListRequests
+              Namespace: AWS/S3
+              Period: "3600"
+              Unit: Count
+              Stat: Sum

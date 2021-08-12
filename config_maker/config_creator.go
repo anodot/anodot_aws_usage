@@ -14,10 +14,7 @@ const red = "\u001b[31m"
 const reset = "\u001b[0m"
 
 type Params struct {
-	token       string
-	anodotUrl   string
-	accountName string
-	accessKey   string
+	anodotUrl string
 }
 
 var metricsButtons = []string{"Default (All metrics above)", "Done"}
@@ -425,24 +422,6 @@ func ChoseParams() (Params, error) {
 		return p, err
 	}
 	p.anodotUrl = url
-
-	token, err := CustomPrompt(ValidateToken, "Anodot Data Token")
-	if err != nil {
-		return p, err
-	}
-	p.token = token
-
-	accountName, err := CustomPrompt(ValidateAccountName, "Account name")
-	if err != nil {
-		return p, err
-	}
-	p.accountName = accountName
-
-	accessKey, err := CustomPrompt(ValidateToken, "Anodot access key(api key)")
-	if err != nil {
-		return p, err
-	}
-	p.accessKey = accessKey
 	return p, nil
 }
 
@@ -487,9 +466,6 @@ func main() {
 		os.Exit(3)
 	}
 	c := Config{
-		AccessKey:      params.accessKey,
-		AccountId:      params.accountName,
-		AnodotToken:    params.token,
 		AnodotUrl:      params.anodotUrl,
 		RegionsConfigs: make(map[string]map[string]ServiceN),
 	}

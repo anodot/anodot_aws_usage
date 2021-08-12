@@ -10,5 +10,15 @@ variable "regions" {
 
 variable "function_id" {
     type = string
-    description = "Custom string which will be used like a prefix of the lambda function name"
+    description = "Custom string for distinguishing different lambda installation"
+}
+
+variable "anodot_access_key" {
+    type = string
+    description = "Anodot API access key. Terraform needs this to create secret in AWS Secrets Manager"
+}
+
+variable "anodot_data_token" {
+    type = string
+    description = "Anodot data collection token. Terraform needs this to create secret in AWS Secrets Manager"
 }

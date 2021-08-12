@@ -18,10 +18,7 @@ type ServiceN struct {
 }
 
 type Config struct {
-	AccessKey      string                         `yaml:"accessKey"`
-	AccountId      string                         `yaml:"accountName"`
 	Region         string                         `yaml:"-"`
 	AnodotUrl      string                         `yaml:"anodotUrl"`
-	AnodotToken    string                         `yaml:"token"`
 	RegionsConfigs map[string]map[string]ServiceN `yaml:",inline"`
 }
