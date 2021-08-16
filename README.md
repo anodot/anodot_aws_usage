@@ -114,14 +114,21 @@ make deploy LAMBDA_S3=your-bucket-name
 
 3.  Fill **terraform/input.tfvars** with your data. This is file is needed by terraform to store terraform vars
 
+
 ``` bash 
-cat input.tfvars
 # s3 bucket where lambda function stored
-s3_bucket =
+s3_bucket = ""
+
+# Custom string for identification of lambda installation. Will be sent to Anodot as account_id dimesnion.
+function_id = "fr-testing"
 
 # Regions where metrics will be fetched:
-regions = ["region1", "region2"]
+regions = ["eu-central-1"]
+
+anodot_access_key =  
+anodot_data_token= 
 ```
+For obtaining your **anodot_access_key** and **anodot_data_token** - Please refer to this [page](https://support.anodot.com/hc/en-us/articles/360002631114-Token-Management-) 
 
 Please notice that for each region a separate function will be created (it will be fetching metrics for this region) but it will be deployed into AWS_DEFAULT_REGION. 
 
@@ -129,8 +136,8 @@ Please notice that for each region a separate function will be created (it will 
 
 4. Create the lambda function
 
-For running the next command, you will need your Anodot **Access Token** and the URL through which you access Anodot.
-For obtaining your Anodot Access Token - Please refer to this [page](https://support.anodot.com/hc/en-us/articles/360002631114-Token-Management-) 
+For running the next command, you will need your the URL through which you access Anodot.
+
 
 ```bash
 make create-function
