@@ -34,6 +34,8 @@ Some notes before you start:
                 "events:RemoveTargets",
                 "events:ListTargetsByRule",
                 "ec2:Describe*",
+		"secretsmanager:CreateSecret",
+		"secretsmanager:PutSecretValue",
                 "iam:GetRole",
                 "iam:GetPolicyVersion",
                 "iam:GetPolicy",
