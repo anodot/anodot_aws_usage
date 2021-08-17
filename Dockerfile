@@ -1,6 +1,6 @@
 FROM golang:1.13
 
-ENV TERRAFORM_VERSION=1.0.4
+ENV TERRAFORM_VERSION=0.12.20
 RUN rm -rf /tmp/* && \
     rm -rf /var/cache/apk/* && \
     rm -rf /var/tmp/* && \

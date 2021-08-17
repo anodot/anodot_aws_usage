@@ -157,9 +157,6 @@ func GetConfig() (Config, error) {
 		return c, fmt.Errorf("Too few arguments for lambda function. Please set token, anodotUrl with config file or with lambda env vars.")
 	}
 
-	//log.Printf("Input config:")
-	//fmt.Print(c.String())
-
 	return c, nil
 }
 

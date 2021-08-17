@@ -59,6 +59,7 @@ func SubmitMetrics(client metrics3.Anodot30Client, metrics []metrics3.AnodotMetr
 	respSubmit, err := client.SubmitMetrics(metrics)
 	if err != nil {
 		log.Printf("submition failed: %v", err)
+
 		if respSubmit != nil {
 			log.Printf("http status: %v", respSubmit.HttpResponse.Status)
 		}
@@ -66,6 +67,7 @@ func SubmitMetrics(client metrics3.Anodot30Client, metrics []metrics3.AnodotMetr
 	}
 	if respSubmit.HasErrors() {
 		log.Printf("submition failed: %s", respSubmit.ErrorMessage())
+
 		log.Printf("http status: %v", respSubmit.HttpResponse.Status)
 		return fmt.Errorf(respSubmit.ErrorMessage())
 	}

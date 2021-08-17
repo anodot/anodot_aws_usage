@@ -1,5 +1,5 @@
 BUILD_IMAGE := usage_lambda
-BUILD_IMAGE_VERSION := 1.1
+BUILD_IMAGE_VERSION := 1.0
 BRANCH ?= master
 
 CONTAINER_BASH := docker run --workdir /output -e GOOS -e GOARCH -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION)

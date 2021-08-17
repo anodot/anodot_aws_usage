@@ -133,40 +133,40 @@ func GetSchemasFromConfig(config Config) ([]metrics3.AnodotMetricsSchema, error)
 		Fill:   "unknown",
 	}
 
-	for _, region := range config.RegionsConfigs {
-		for servicName, service := range region {
-			measurments[servicName] = make(map[string]metrics3.MeasurmentBase)
+	region := config.RegionsConfigs[config.Region]
 
-			customMetricsDefs, dims := GetCustomMetricsAndDimensions(servicName, service)
-			if len(dims) == 0 {
-				return nil, fmt.Errorf("unkown service %s", servicName)
-			}
+	for servicName, service := range region {
+		measurments[servicName] = make(map[string]metrics3.MeasurmentBase)
 
-			dimensions[servicName] = append(dims, "account_id")
-			// Add custom metric to schema
-			for _, customMetric := range service.CustomMetrics {
-				for _, customMetricDef := range customMetricsDefs {
-					if customMetric == customMetricDef.Name || customMetric == customMetricDef.Alias {
-						measurments[servicName][customMetricDef.Name] = metrics3.MeasurmentBase{
-							CountBy:     "none",
-							Aggregation: customMetricDef.TargetType,
-						}
+		customMetricsDefs, dims := GetCustomMetricsAndDimensions(servicName, service)
+		if len(dims) == 0 {
+			return nil, fmt.Errorf("unkown service %s", servicName)
+		}
+
+		dimensions[servicName] = append(dims, "account_id")
+		// Add custom metric to schema
+		for _, customMetric := range service.CustomMetrics {
+			for _, customMetricDef := range customMetricsDefs {
+				if customMetric == customMetricDef.Name || customMetric == customMetricDef.Alias {
+					measurments[servicName][customMetricDef.Name] = metrics3.MeasurmentBase{
+						CountBy:     "none",
+						Aggregation: customMetricDef.TargetType,
 					}
 				}
 			}
+		}
 
-			// Add cloudwatch metrics to schema
-			for _, cm := range service.Metrics {
-				var agg string
-				if cm.Stat == "Sum" {
-					agg = "sum"
-				} else {
-					agg = "average"
-				}
-				measurments[servicName][cm.Name] = metrics3.MeasurmentBase{
-					CountBy:     "none",
-					Aggregation: agg,
-				}
+		// Add cloudwatch metrics to schema
+		for _, cm := range service.Metrics {
+			var agg string
+			if cm.Stat == "Sum" {
+				agg = "sum"
+			} else {
+				agg = "average"
+			}
+			measurments[servicName][cm.Name] = metrics3.MeasurmentBase{
+				CountBy:     "none",
+				Aggregation: agg,
 			}
 		}
 	}
