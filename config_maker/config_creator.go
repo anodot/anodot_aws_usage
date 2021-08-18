@@ -84,10 +84,13 @@ func GetAllMetricsAllServices() []ServiceN {
 			} else {
 				if cwm, ok := allCwms[metric]; ok {
 					cwms = append(cwms, cwm)
+				} else {
+					cms = append(cms, metric)
 				}
 			}
 
 		}
+
 		services = append(services,
 			ServiceN{
 				Name:              s,
