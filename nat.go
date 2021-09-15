@@ -4,22 +4,23 @@ import (
 	"fmt"
 	"strconv"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
 type NatGateway struct {
-	NatGatewayId *string
-	VpcId        *string
-	SubnetId     *string
-	Tags         []*ec2.Tag
-	State        *string
-	Region       *string
+	NatGatewayId  *string
+	VpcId         *string
+	SubnetId      *string
+	Tags          []*ec2.Tag
+	State         *string
+	Region        *string
+	DimensionTags []string
 }
 
-func DescribeNatGateways(session *session.Session) ([]NatGateway, error) {
+func DescribeNatGateways(session *session.Session, resource *MonitoredResource) ([]NatGateway, error) {
 	region := session.Config.Region
 	var nexttoken *string = nil
 	gateways := make([]NatGateway, 0)
@@ -50,16 +51,30 @@ func DescribeNatGateways(session *session.Session) ([]NatGateway, error) {
 
 	for _, g := range rawgateways {
 		gateway := NatGateway{
-			NatGatewayId: g.NatGatewayId,
-			VpcId:        g.VpcId,
-			SubnetId:     g.SubnetId,
-			State:        g.State,
-			Tags:         g.Tags,
-			Region:       region,
+			NatGatewayId:  g.NatGatewayId,
+			VpcId:         g.VpcId,
+			SubnetId:      g.SubnetId,
+			State:         g.State,
+			Tags:          g.Tags,
+			Region:        region,
+			DimensionTags: resource.DimensionTags,
 		}
 		gateways = append(gateways, gateway)
 	}
 	return gateways, nil
+}
+
+func GetNatGatewayMetricDimensions(resource *MonitoredResource) []string {
+	dims := []string{
+		"service",
+		"NatGatewayId",
+		"VpcId",
+		"SubnetId",
+		"State",
+		"anodot-collector",
+		"region",
+	}
+	return removeDuplicates(append(dims, resource.DimensionTags...))
 }
 
 func GetNatGatewayMetricProperties(gateway NatGateway) map[string]string {
@@ -74,13 +89,17 @@ func GetNatGatewayMetricProperties(gateway NatGateway) map[string]string {
 	}
 
 	for _, v := range gateway.Tags {
-		if len(*v.Key) > 50 || len(*v.Value) < 2 {
-			continue
+		for _, dt := range gateway.DimensionTags {
+			if *v.Key == dt {
+				if len(*v.Key) > 50 || len(*v.Value) < 2 {
+					continue
+				}
+				if len(properties) == 17 {
+					break
+				}
+				properties[escape(*v.Key)] = escape(*v.Value)
+			}
 		}
-		if len(properties) == 17 {
-			break
-		}
-		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
 	for k, v := range properties {
@@ -114,12 +133,12 @@ func GetNatGatewayCloudwatchMetrics(resource *MonitoredResource, gateways []NatG
 	return metrics, nil
 }
 
-func GetNatGatewayMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+func GetNatGatewayMetrics30(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	anodotMetrics := make([]metrics3.AnodotMetrics30, 0)
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
 	}
-	gateways, err := DescribeNatGateways(session)
+	gateways, err := DescribeNatGateways(session, resource)
 	if err != nil {
 		return anodotMetrics, err
 	}
@@ -138,7 +157,7 @@ func GetNatGatewayMetrics(session *session.Session, cloudwatchSvc *cloudwatch.Cl
 			for _, mr := range metricdataresults {
 				if *mr.Id == m.MStat.Id {
 					n := m.Resource.(NatGateway)
-					anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetNatGatewayMetricProperties(n))
+					anodot_cloudwatch_metrics := GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, GetNatGatewayMetricProperties(n))
 					anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
 
 				}

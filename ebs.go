@@ -1,11 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -13,14 +14,15 @@ import (
 )
 
 type EBS struct {
-	Id     string
-	Tags   []*ec2.Tag
-	Type   string
-	State  string
-	AZ     string
-	IOPS   int64
-	Region string
-	Size   int64
+	Id            string
+	Tags          []*ec2.Tag
+	Type          string
+	State         string
+	AZ            string
+	IOPS          int64
+	Region        string
+	Size          int64
+	DimensionTags []string
 }
 
 func DescribeVolumes(deafaultfilters map[string]string, ec2svc *ec2.EC2) ([]*ec2.Volume, error) {
@@ -64,7 +66,7 @@ func getDecribeInput(filters []*ec2.Filter, nexttoken *string) *ec2.DescribeVolu
 	return input
 }
 
-func GetEBSVolumes(session *session.Session, customtags []Tag) ([]EBS, error) {
+func GetEBSVolumes(session *session.Session, customtags []Tag, resource *MonitoredResource) ([]EBS, error) {
 	ebslist := make([]EBS, 0)
 	ec2svc := ec2.New(session)
 	volumes := make([]*ec2.Volume, 0)
@@ -94,13 +96,14 @@ func GetEBSVolumes(session *session.Session, customtags []Tag) ([]EBS, error) {
 
 	for _, v := range volumes {
 		ebs := EBS{
-			Id:     *v.VolumeId,
-			Type:   *v.VolumeType,
-			Size:   *v.Size,
-			AZ:     *v.AvailabilityZone,
-			Region: *region,
-			IOPS:   0,
-			State:  *v.State,
+			Id:            *v.VolumeId,
+			Type:          *v.VolumeType,
+			Size:          *v.Size,
+			AZ:            *v.AvailabilityZone,
+			Region:        *region,
+			IOPS:          0,
+			State:         *v.State,
+			DimensionTags: resource.DimensionTags,
 		}
 
 		if v.Iops != nil {
@@ -110,6 +113,31 @@ func GetEBSVolumes(session *session.Session, customtags []Tag) ([]EBS, error) {
 		ebslist = append(ebslist, ebs)
 	}
 	return ebslist, nil
+}
+
+func GetEBSDimensions(resource *MonitoredResource) []string {
+	dims := []string{
+		"service",
+		"volume_id",
+		"ebs_type",
+		"state",
+		"availability_zone",
+		"iops",
+		"region",
+		"anodot-collector",
+	}
+	return removeDuplicates(append(dims, resource.DimensionTags...))
+}
+
+func GetEBSCustomMetrics() []CustomMetricDefinition {
+
+	return []CustomMetricDefinition{
+		CustomMetricDefinition{
+			Name:       "size",
+			Alias:      "Size",
+			TargetType: "sum",
+		},
+	}
 }
 
 func GetEBSMetricProperties(ebs EBS) map[string]string {
@@ -125,13 +153,18 @@ func GetEBSMetricProperties(ebs EBS) map[string]string {
 	}
 
 	for _, v := range ebs.Tags {
-		if len(*v.Key) > 50 || len(*v.Value) < 2 {
-			continue
+		for _, dt := range ebs.DimensionTags {
+			fmt.Println(*v.Key)
+			if *v.Key == dt {
+				if len(*v.Key) > 50 || len(*v.Value) < 2 {
+					continue
+				}
+				if len(properties) == 17 {
+					break
+				}
+				properties[escape(*v.Key)] = escape(*v.Value)
+			}
 		}
-		if len(properties) == 17 {
-			break
-		}
-		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
 	for k, v := range properties {
@@ -142,53 +175,36 @@ func GetEBSMetricProperties(ebs EBS) map[string]string {
 	return properties
 }
 
-func getEBSSizeMetric(ebs []EBS) []metricsAnodot.Anodot20Metric {
-	metricList := make([]metricsAnodot.Anodot20Metric, 0)
+func getEBSSizeMetric(ebs []EBS) []metrics3.AnodotMetrics30 {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
 	for _, e := range ebs {
 		properties := GetEBSMetricProperties(e)
-		if accountId != "" {
-			properties["account_id"] = accountId
+		metric := metrics3.AnodotMetrics30{
+			Dimensions:   properties,
+			Timestamp:    metrics3.AnodotTimestamp{time.Now()},
+			Measurements: map[string]float64{"size": float64(e.Size)},
 		}
-		properties["what"] = "size"
-		properties["metric_version"] = metricVersion
-		metric := metricsAnodot.Anodot20Metric{
-			Properties: properties,
-			Value:      float64(e.Size),
-			Timestamp: metricsAnodot.AnodotTimestamp{
-				time.Now(),
-			},
-		}
-		// temporary add doulblicate metrics with  target_type=counter
-		properties["target_type"] = "counter"
-		metric2 := metricsAnodot.Anodot20Metric{
-			Properties: properties,
-			Value:      float64(e.Size),
-			Timestamp: metricsAnodot.AnodotTimestamp{
-				time.Now(),
-			},
-		}
-		metricList = append(metricList, metric2)
-		metricList = append(metricList, metric)
+		metrics = append(metrics, metric)
 	}
-	return metricList
+	return metrics
 }
 
-func GetEBSMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
-	ebss, err := GetEBSVolumes(session, resource.Tags)
+func GetEBSMetrics30(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
+	ebss, err := GetEBSVolumes(session, resource.Tags, resource)
 
 	if err != nil {
 		log.Printf("Cloud not describe EBS volumes %v", err)
-		return anodotMetrics, err
+		return metrics, err
 	}
 	log.Printf("Got %d EBS volumes to process", len(ebss))
 	if len(resource.CustomMetrics) > 0 {
 		for _, cm := range resource.CustomMetrics {
 			if cm == "Size" {
 				log.Printf("Processing EBS custom metric Size\n")
-				anodotMetrics = append(anodotMetrics, getEBSSizeMetric(ebss)...)
+				metrics = append(metrics, getEBSSizeMetric(ebss)...)
 			}
 		}
 	}
-	return anodotMetrics, nil
+	return metrics, nil
 }

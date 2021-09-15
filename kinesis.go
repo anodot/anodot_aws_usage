@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/kinesis"
@@ -34,6 +34,15 @@ func GetStreams(session *session.Session) ([]KinesisStream, error) {
 		streams = append(streams, KinesisStream{Name: *stream, Region: *region})
 	}
 	return streams, nil
+}
+
+func GetStreamDimensions() []string {
+	return []string{
+		"service",
+		"StreamName",
+		"anodot-collector",
+		"region",
+	}
 }
 
 func GetStreamMetricProperties(stream KinesisStream) map[string]string {
@@ -67,8 +76,8 @@ func GetKinesisStreamCloudwatchMetrics(resource *MonitoredResource, streams []Ki
 	return metrics, nil
 }
 
-func GetKinesisMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+func GetKinesisMetrics30(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	anodotMetrics := make([]metrics3.AnodotMetrics30, 0)
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
 	}
@@ -93,7 +102,7 @@ func GetKinesisMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 		for _, mr := range metricdataresults {
 			if *mr.Id == m.MStat.Id {
 				stream := m.Resource.(KinesisStream)
-				anodot_stream_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetStreamMetricProperties(stream))
+				anodot_stream_metrics := GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, GetStreamMetricProperties(stream))
 				anodotMetrics = append(anodotMetrics, anodot_stream_metrics...)
 			}
 		}

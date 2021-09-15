@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -32,7 +32,9 @@ func GetS3Buckets(session *session.Session, listmetrics []*cloudwatch.Metric) ([
 	if err != nil {
 		return s3list, err
 	}
+
 	var dbucketname string
+
 	for _, s := range result.Buckets {
 		s3Metrics := make([]S3Metric, 0)
 		for _, m := range listmetrics {
@@ -68,6 +70,16 @@ func GetS3Buckets(session *session.Session, listmetrics []*cloudwatch.Metric) ([
 	}
 
 	return s3list, err
+}
+
+func GetS3Dimensions() []string {
+	return []string{
+		"storage_type",
+		"service",
+		"bucket_name",
+		"region",
+		"anodot-collector",
+	}
 }
 
 func GetS3MetricProperties(bucket S3) map[string]string {
@@ -119,8 +131,8 @@ func GetCloudwatchMetricList(cloudwatchSvc *cloudwatch.CloudWatch) ([]*cloudwatc
 	return listmetrics.Metrics, nil
 }
 
-func GetS3Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+func GetS3Metrics30(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	anodotMetrics := make([]metrics3.AnodotMetrics30, 0)
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
 	}
@@ -173,7 +185,7 @@ func GetS3Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch
 				if len(mr.Values) > 0 {
 					timestemps := []*time.Time{&now}
 					values := []*float64{mr.Values[0]}
-					anodotMetrics = append(anodotMetrics, GetAnodotMetric(m.MStat.Name, timestemps, values, properties)...)
+					anodotMetrics = append(anodotMetrics, GetAnodotMetric30(m.MStat.Name, timestemps, values, properties)...)
 				}
 			}
 		}

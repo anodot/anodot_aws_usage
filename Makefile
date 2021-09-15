@@ -5,7 +5,7 @@ BRANCH ?= master
 CONTAINER_BASH := docker run --workdir /output -e GOOS -e GOARCH -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION)
 GO :=  $(CONTAINER_BASH) go
 
-TERRAFORM_CMD := docker run -e AWS_DEFAULT_REGION  -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID --workdir /output/terraform/ -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION) terraform 
+TERRAFORM_CMD := docker run -ti -e AWS_DEFAULT_REGION  -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID --workdir /output/terraform/ -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION) terraform 
 GOFLAGS=-mod=vendor
 
 AWSCLI := docker run -e AWS_DEFAULT_REGION  -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID --workdir /output -v "$(PWD)":/output "$(BUILD_IMAGE)":$(BUILD_IMAGE_VERSION) aws 
@@ -70,16 +70,16 @@ terraform-init:
 	$(TERRAFORM_CMD) init
 
 terraform-plan:
-	$(TERRAFORM_CMD) plan -out start -var-file input.tfvars
+	$(TERRAFORM_CMD) plan -out start -var-file input.tfvars 
 
 terraform-apply:
-	$(TERRAFORM_CMD) apply "start"
+	$(TERRAFORM_CMD) apply "start" 
 
 terraform-plan-destroy:
-	$(TERRAFORM_CMD) plan -destroy -out delete -var-file input.tfvars
+	$(TERRAFORM_CMD) plan -destroy -out delete -var-file input.tfvars 
 
 terraform-apply-destroy:
-	$(TERRAFORM_CMD) apply "delete"
+	$(TERRAFORM_CMD) apply  "delete" 
 
 copy_to_s3:
 	$(AWSCLI) s3 cp $(LAMBDA_ARCHIVE) s3://$(LAMBDA_S3) 

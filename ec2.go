@@ -6,8 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/anodot/anodot-common/pkg/metrics"
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -28,6 +27,7 @@ type Instance struct {
 	ThreadsPerCore     int64
 	Region             string
 	Lifecycle          string
+	DimensionTags      []string
 }
 
 type Filters []*ec2.Filter
@@ -80,7 +80,7 @@ func (i *EC2Fetcher) SetTag(name string, value string) error {
 	return nil
 }
 
-func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
+func (ec2fetcher *EC2Fetcher) GetInstances(resource *MonitoredResource) (ListInstances, error) {
 	var li ListInstances
 	var nexttoken *string = nil
 	reservation := make([]*ec2.Reservation, 0)
@@ -138,6 +138,7 @@ func (ec2fetcher *EC2Fetcher) GetInstances() (ListInstances, error) {
 			VirtualizationType: *i.VirtualizationType,
 			Region:             ec2fetcher.region,
 			Lifecycle:          lifecycle,
+			DimensionTags:      resource.DimensionTags,
 		})
 
 	}
@@ -159,6 +160,40 @@ func getInput(fl Filters, nexttoken *string) *ec2.DescribeInstancesInput {
 	return input
 }
 
+func GetEc2Dimensions(resource *MonitoredResource) []string {
+	dims := []string{
+		"service",
+		"instance_id",
+		"instance_type",
+		"monitoring",
+		"availability_zone",
+		"group_name",
+		"state",
+		"vpc_id",
+		"virtualization_type",
+		"threads_per_core",
+		"region",
+		"lifecycle",
+		"anodot-collector",
+	}
+	return append(dims, resource.DimensionTags...)
+}
+
+func GetEc2CustomMetrics() []CustomMetricDefinition {
+	return []CustomMetricDefinition{
+		{
+			Name:       "cpu_count",
+			Alias:      "CoreCount",
+			TargetType: "sum",
+		},
+		{
+			Name:       "vcpu_count",
+			Alias:      "CoreCount",
+			TargetType: "sum",
+		},
+	}
+}
+
 func GetEc2MetricProperties(ins Instance) map[string]string {
 	properties := map[string]string{
 		"service":             "ec2",
@@ -177,13 +212,17 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 	}
 
 	for _, v := range ins.Tags {
-		if len(*v.Key) > 50 || len(*v.Value) < 2 {
-			continue
+		for _, dt := range ins.DimensionTags {
+			if *v.Key == dt {
+				if len(*v.Key) > 50 || len(*v.Value) < 2 {
+					continue
+				}
+				if len(properties) == 17 {
+					break
+				}
+				properties[escape(*v.Key)] = escape(*v.Value)
+			}
 		}
-		if len(properties) == 17 {
-			break
-		}
-		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
 	for k, v := range properties {
@@ -194,61 +233,35 @@ func GetEc2MetricProperties(ins Instance) map[string]string {
 	return properties
 }
 
-func getCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
-	metricList := make([]metricsAnodot.Anodot20Metric, 0)
+func getCpuCountMetric30(ins []Instance) []metrics3.AnodotMetrics30 {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
 	for _, i := range ins {
 		properties := GetEc2MetricProperties(i)
-		if accountId != "" {
-			properties["account_id"] = accountId
+		metric := metrics3.AnodotMetrics30{
+			Dimensions:   properties,
+			Timestamp:    metrics3.AnodotTimestamp{time.Now()},
+			Measurements: map[string]float64{"cpu_count": float64(i.CoreCount)},
 		}
-		properties["metric_version"] = metricVersion
-		properties["what"] = "cpu_count"
-		metric := metrics.Anodot20Metric{
-			Properties: properties,
-			Value:      float64(i.CoreCount),
-			Timestamp: metrics.AnodotTimestamp{
-				time.Now(),
-			},
-		}
-		// temporary add doulblicate metrics with  target_type=counter
-		properties["target_type"] = "counter"
-		metric2 := metrics.Anodot20Metric{
-			Properties: properties,
-			Value:      float64(i.CoreCount),
-			Timestamp: metrics.AnodotTimestamp{
-				time.Now(),
-			},
-		}
-
-		metricList = append(metricList, metric2)
-		metricList = append(metricList, metric)
+		metrics = append(metrics, metric)
 	}
 
-	return metricList
+	return metrics
 }
 
-func getVirtualCpuCountMetric(ins []Instance) []metricsAnodot.Anodot20Metric {
-	metricList := make([]metricsAnodot.Anodot20Metric, 0)
+func getVirtualCpuCountMetric30(ins []Instance) []metrics3.AnodotMetrics30 {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
+
 	for _, i := range ins {
-		properties := GetEc2MetricProperties(i)
-		if accountId != "" {
-			properties["account_id"] = accountId
-		}
-		properties["target_type"] = "counter"
-		properties["metric_version"] = metricVersion
-		properties["what"] = "vcpu_count"
 		vcpu := i.CoreCount * i.ThreadsPerCore
-		metric := metrics.Anodot20Metric{
-			Properties: properties,
-			Value:      float64(vcpu),
-			Timestamp: metrics.AnodotTimestamp{
-				time.Now(),
-			},
+		metric := metrics3.AnodotMetrics30{
+			Dimensions:   GetEc2MetricProperties(i),
+			Timestamp:    metrics3.AnodotTimestamp{time.Now()},
+			Measurements: map[string]float64{"vcpu_count": float64(vcpu)},
 		}
-		metricList = append(metricList, metric)
+		metrics = append(metrics, metric)
 	}
 
-	return metricList
+	return metrics
 }
 
 func GetEc2CloudwatchMetrics(resource *MonitoredResource, instances []Instance) ([]MetricToFetch, error) {
@@ -274,46 +287,43 @@ func GetEc2CloudwatchMetrics(resource *MonitoredResource, instances []Instance) 
 	return metrics, nil
 }
 
-func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+func GetEc2Metrics30(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	metrics := make([]metrics3.AnodotMetrics30, 0)
+
 	instanceFetcher := CreateEC2Fetcher(session)
+
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
 	}
-
-	for _, t := range resource.Tags {
-		instanceFetcher.SetTag(t.Name, t.Value)
-	}
-	instances, err := instanceFetcher.GetInstances()
+	instances, err := instanceFetcher.GetInstances(resource)
 	if err != nil {
 		log.Printf("Could not fetch EC2 instances from AWS %v", err)
-		return anodotMetrics, err
+		return metrics, err
 	}
 
 	log.Printf("Found %d instances to process \n", len(instances))
-	metrics, err := GetEc2CloudwatchMetrics(resource, instances)
+	cmetrics, err := GetEc2CloudwatchMetrics(resource, instances)
 	if err != nil {
 		log.Printf("Error: %v", err)
-		return anodotMetrics, err
+		return metrics, err
 	}
-	if len(metrics) > 0 {
-		metricdatainput := NewGetMetricDataInput(metrics)
+
+	if len(cmetrics) > 0 {
+		metricdatainput := NewGetMetricDataInput(cmetrics)
 		metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
 		if err != nil {
 			log.Printf("Error during EC2 metrics processing: %v", err)
-			return anodotMetrics, err
+			return metrics, err
 		}
 
-		for _, m := range metrics {
+		for _, m := range cmetrics {
 			for _, mr := range metricdataresults {
 				if *mr.Id == m.MStat.Id {
 					i := m.Resource.(Instance)
-					properties := GetEc2MetricProperties(i)
-					properties["target_type"] = "counter"
-					//log.Printf("Fetching CloudWatch metric: %s for: instance Id %s \n", m.MStat.Name, i.InstanceId)
-					anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, properties)
-					anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
-
+					metrics = append(
+						metrics,
+						GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, GetEc2MetricProperties(i))...,
+					)
 				}
 			}
 		}
@@ -323,13 +333,14 @@ func GetEc2Metrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 		for _, cm := range resource.CustomMetrics {
 			if cm == "CoreCount" {
 				log.Printf("Processing EC2 custom metric CoreCount\n")
-				anodotMetrics = append(anodotMetrics, getCpuCountMetric(instances)...)
+				metrics = append(metrics, getCpuCountMetric30(instances)...)
 			}
 			if cm == "VCpuCount" {
 				log.Printf("Processing EC2 custom metric VCpuCount\n")
-				anodotMetrics = append(anodotMetrics, getVirtualCpuCountMetric(instances)...)
+				metrics = append(metrics, getVirtualCpuCountMetric30(instances)...)
 			}
 		}
 	}
-	return anodotMetrics, nil
+
+	return metrics, nil
 }

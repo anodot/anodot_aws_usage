@@ -4,7 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -19,26 +19,37 @@ type LoadBalancerTag struct {
 }
 
 type LoadBalancer struct {
-	Name   string
-	Az     string
-	VPCId  string
-	Type   string
-	Tags   []LoadBalancerTag
-	Region string
+	Name          string
+	Az            string
+	VPCId         string
+	Type          string
+	Tags          []LoadBalancerTag
+	Region        string
+	DimensionTags []string
 }
 
-func GetLoadBalancers(session *session.Session) ([]LoadBalancer, error) {
+func GetLoadBalancers(session *session.Session, resource *MonitoredResource) ([]LoadBalancer, error) {
 	balancers := make([]LoadBalancer, 0)
 	netandapp, err := GetAppAndNetworkBalancers(session)
 	if err != nil {
 		return balancers, err
 	}
-	balancers = append(balancers, netandapp...)
+
 	classic, err := GetClassicBalancers(session)
 	if err != nil {
 		return balancers, err
 	}
-	balancers = append(balancers, classic...)
+
+	for _, nab := range netandapp {
+		nab.DimensionTags = resource.DimensionTags
+		balancers = append(balancers, nab)
+	}
+
+	for _, c := range classic {
+		c.DimensionTags = resource.DimensionTags
+		balancers = append(balancers, c)
+	}
+
 	return balancers, nil
 }
 
@@ -116,6 +127,19 @@ func GetClassicBalancers(session *session.Session) ([]LoadBalancer, error) {
 	return balancers, nil
 }
 
+func GetELBDimensions(resource *MonitoredResource) []string {
+	dims := []string{
+		"service",
+		"name",
+		"az",
+		"vpc_id",
+		"region",
+		"anodot-collector",
+		"type",
+	}
+	return removeDuplicates(append(dims, resource.DimensionTags...))
+}
+
 func GetELBMetricProperties(elb LoadBalancer) map[string]string {
 	properties := map[string]string{
 		"service":          "elb",
@@ -128,13 +152,17 @@ func GetELBMetricProperties(elb LoadBalancer) map[string]string {
 	}
 
 	for _, v := range elb.Tags {
-		if len(v.Key) > 50 || len(v.Value) < 2 {
-			continue
+		for _, dt := range elb.DimensionTags {
+			if v.Key == dt {
+				if len(v.Key) > 50 || len(v.Value) < 2 {
+					continue
+				}
+				if len(properties) == 17 {
+					break
+				}
+				properties[escape(v.Key)] = escape(v.Value)
+			}
 		}
-		if len(properties) == 17 {
-			break
-		}
-		properties[escape(v.Key)] = escape(v.Value)
 	}
 
 	for k, v := range properties {
@@ -183,13 +211,13 @@ func convertTags(tags interface{}) []LoadBalancerTag {
 	return blancertags
 }
 
-func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+func GetELBMetrics30(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
 	}
 
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
-	elbs, err := GetLoadBalancers(session)
+	anodotMetrics := make([]metrics3.AnodotMetrics30, 0)
+	elbs, err := GetLoadBalancers(session, resource)
 	if err != nil {
 		log.Printf("Cloud not describe Load Balancers %v", err)
 		return anodotMetrics, err
@@ -214,7 +242,7 @@ func GetELBMetrics(session *session.Session, cloudwatchSvc *cloudwatch.CloudWatc
 			if *mr.Id == m.MStat.Id {
 				e := m.Resource.(LoadBalancer)
 				//log.Printf("Fetching CloudWatch metric: %s for ELB Id %s \n", m.MStat.Name, e.Name)
-				anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetELBMetricProperties(e))
+				anodot_cloudwatch_metrics := GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, GetELBMetricProperties(e))
 				anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
 			}
 		}

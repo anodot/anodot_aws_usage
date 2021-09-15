@@ -6,24 +6,24 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/anodot/anodot-common/pkg/metrics"
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/efs"
 )
 
 type Efs struct {
-	FileSystemId *string
-	Name         *string
-	Size         *float64
-	Tags         []*efs.Tag
-	SizeInIA     *float64 //// The latest known metered size (in bytes) of data stored in the Infrequent Access storage class.
-	SizeS        *float64 //// The latest known metered size (in bytes) of data stored in the Standard storage class.
-	Region       string
+	FileSystemId  *string
+	Name          *string
+	Size          *float64
+	Tags          []*efs.Tag
+	SizeInIA      *float64 //// The latest known metered size (in bytes) of data stored in the Infrequent Access storage class.
+	SizeS         *float64 //// The latest known metered size (in bytes) of data stored in the Standard storage class.
+	Region        string
+	DimensionTags []string
 }
 
-func DesribeFilesystems(session *session.Session) ([]Efs, error) {
+func DesribeFilesystems(session *session.Session, resource *MonitoredResource) ([]Efs, error) {
 	region := session.Config.Region
 	efss := make([]Efs, 0)
 	svc := efs.New(session)
@@ -43,16 +43,49 @@ func DesribeFilesystems(session *session.Session) ([]Efs, error) {
 		size := float64(*efs.SizeInBytes.Value)
 
 		efss = append(efss, Efs{
-			FileSystemId: efs.FileSystemId,
-			Name:         efs.Name,
-			Tags:         efs.Tags,
-			Size:         &size,
-			SizeInIA:     &sizeInA,
-			SizeS:        &sizeInS,
-			Region:       *region,
+			FileSystemId:  efs.FileSystemId,
+			Name:          efs.Name,
+			Tags:          efs.Tags,
+			Size:          &size,
+			SizeInIA:      &sizeInA,
+			SizeS:         &sizeInS,
+			Region:        *region,
+			DimensionTags: resource.DimensionTags,
 		})
 	}
 	return efss, nil
+}
+
+func GetEfsDimensions(resource *MonitoredResource) []string {
+	dims := []string{
+		"service",
+		"FileSystemId",
+		"anodot-collector",
+		"region",
+		"Name",
+	}
+	return removeDuplicates(append(dims, resource.DimensionTags...))
+}
+
+func GetEfsCustomMetrics() []CustomMetricDefinition {
+
+	return []CustomMetricDefinition{
+		CustomMetricDefinition{
+			Name:       "Size_All",
+			Alias:      "Size_All",
+			TargetType: "average",
+		},
+		CustomMetricDefinition{
+			Name:       "Size_Infrequent",
+			Alias:      "Size_Infrequent",
+			TargetType: "average",
+		},
+		CustomMetricDefinition{
+			Name:       "Size_Standard",
+			Alias:      "Size_Standard",
+			TargetType: "average",
+		},
+	}
 }
 
 func GetEfsMetricProperties(efs Efs) map[string]string {
@@ -68,13 +101,17 @@ func GetEfsMetricProperties(efs Efs) map[string]string {
 	}
 
 	for _, v := range efs.Tags {
-		if len(*v.Key) > 50 || len(*v.Value) < 2 {
-			continue
+		for _, dt := range efs.DimensionTags {
+			if *v.Key == dt {
+				if len(*v.Key) > 50 || len(*v.Value) < 2 {
+					continue
+				}
+				if len(properties) == 17 {
+					break
+				}
+				properties[escape(*v.Key)] = escape(*v.Value)
+			}
 		}
-		if len(properties) == 17 {
-			break
-		}
-		properties[escape(*v.Key)] = escape(*v.Value)
 	}
 
 	for k, v := range properties {
@@ -108,55 +145,47 @@ func GetEfsCloudwatchMetrics(resource *MonitoredResource, efss []Efs) ([]MetricT
 	return metrics, nil
 }
 
-func getEfsSizetMetric(efss []Efs) []metricsAnodot.Anodot20Metric {
-	metricList := make([]metricsAnodot.Anodot20Metric, 0)
+func getEfsSizetMetric(efss []Efs) []metrics3.AnodotMetrics30 {
+	metricList := make([]metrics3.AnodotMetrics30, 0)
 	for _, efs := range efss {
 		metricList = append(metricList, addAnodotMetric(efs, "Size_All", *efs.Size))
 	}
 	return metricList
 }
 
-func getEfsInfrequentSizeMetric(efss []Efs) []metricsAnodot.Anodot20Metric {
-	metricList := make([]metricsAnodot.Anodot20Metric, 0)
+func getEfsInfrequentSizeMetric(efss []Efs) []metrics3.AnodotMetrics30 {
+	metricList := make([]metrics3.AnodotMetrics30, 0)
 	for _, efs := range efss {
 		metricList = append(metricList, addAnodotMetric(efs, "Size_Infrequent", *efs.SizeInIA))
 	}
 	return metricList
 }
 
-func getEfsStandardSizetMetric(efss []Efs) []metricsAnodot.Anodot20Metric {
-	metricList := make([]metricsAnodot.Anodot20Metric, 0)
+func getEfsStandardSizetMetric(efss []Efs) []metrics3.AnodotMetrics30 {
+	metricList := make([]metrics3.AnodotMetrics30, 0)
 	for _, efs := range efss {
 		metricList = append(metricList, addAnodotMetric(efs, "Size_Standard", *efs.SizeS))
 	}
 	return metricList
 }
 
-func addAnodotMetric(efs Efs, what string, value float64) metricsAnodot.Anodot20Metric {
-	properties := GetEfsMetricProperties(efs)
-	if accountId != "" {
-		properties["account_id"] = accountId
+func addAnodotMetric(efs Efs, what string, value float64) metrics3.AnodotMetrics30 {
+	metric := metrics3.AnodotMetrics30{
+		Dimensions:   GetEfsMetricProperties(efs),
+		Timestamp:    metrics3.AnodotTimestamp{time.Now()},
+		Measurements: map[string]float64{what: float64(value)},
 	}
-	//properties["target_type"] = "counter"
-	properties["metric_version"] = metricVersion
-	properties["what"] = what
-	metric := metrics.Anodot20Metric{
-		Properties: properties,
-		Value:      float64(value),
-		Timestamp: metrics.AnodotTimestamp{
-			time.Now(),
-		},
-	}
+
 	return metric
 }
 
-func GetEfsMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+func GetEfsMetrics30(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	anodotMetrics := make([]metrics3.AnodotMetrics30, 0)
 
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
 	}
-	efss, err := DesribeFilesystems(ses)
+	efss, err := DesribeFilesystems(ses, resource)
 	if err != nil {
 		log.Printf("Cloud not get Efs: %v", err)
 		return anodotMetrics, nil
@@ -179,7 +208,7 @@ func GetEfsMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, r
 		for _, mr := range metricdataresults {
 			if *mr.Id == m.MStat.Id {
 				efs := m.Resource.(Efs)
-				anodot_efs_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetEfsMetricProperties(efs))
+				anodot_efs_metrics := GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, GetEfsMetricProperties(efs))
 				anodotMetrics = append(anodotMetrics, anodot_efs_metrics...)
 			}
 		}

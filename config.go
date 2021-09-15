@@ -3,17 +3,24 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"gopkg.in/yaml.v2"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
-	"log"
+	"gopkg.in/yaml.v2"
 )
+
+type CustomMetricDefinition struct {
+	Name       string
+	TargetType string
+	Alias      string
+}
 
 type Tag struct {
 	Name  string
@@ -21,289 +28,79 @@ type Tag struct {
 }
 
 type MonitoredResource struct {
-	Name          string
 	Tags          []Tag
-	Metrics       []MetricStat
-	Ids           []string
-	CustomMetrics []string // List of fields which will be used as measurement
-	MFunction     MetricFunction
-	CustomRegion  string // in case metrics should be fetched from some different region where lambda installed
+	DimensionTags []string     `yaml:"DimensionsFromTags,omitempty"`
+	Metrics       []MetricStat `yaml:"CloudWatchMetrics"`
+	CustomMetrics []string     `yaml:"CustomMetrics"`
+	CustomRegion  string       `yaml:"Region,omitempty"`
 }
 
-type MetricFunction func(*session.Session, *cloudwatch.CloudWatch, *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error)
-
-func (mr *MonitoredResource) String() string {
-	s := fmt.Sprintf("	Name: %s\n", mr.Name)
-	s = s + "	Tags:\n"
-	for _, tag := range mr.Tags {
-		s = s + fmt.Sprintf("	%s: %s", tag.Name, tag.Value)
-	}
-	s = s + "	Metric stat:\n"
-	for _, ms := range mr.Metrics {
-		s = s + "	" + ms.String()
-	}
-	s = s + "	Cutom metrics:\n"
-	for _, cm := range mr.CustomMetrics {
-		s = s + "	" + cm + "\n"
-	}
-	return s
-}
+type MetricFunction func(*session.Session, *cloudwatch.CloudWatch, *MonitoredResource) ([]metrics3.AnodotMetrics30, error)
 
 type Config struct {
-	LambdaBucket   string
-	AccountId      string
+	AccessKey      string `yaml:"accessKey"`
+	AccountId      string `yaml:"accountName"`
 	Region         string
-	AnodotUrl      string
-	AnodotToken    string
-	RegionsConfigs map[string]RegionConfig
+	AnodotUrl      string                                   `yaml:"anodotUrl"`
+	AnodotToken    string                                   `yaml:"token"`
+	RegionsConfigs map[string]map[string]*MonitoredResource `yaml:",inline"`
 }
 
-func (c *Config) String() string {
-	s := fmt.Sprintf("Region: %s\nAnodot URL: %s\nAonodot Token: %s\nAccountId: %s\n", c.Region, c.AnodotUrl, c.AnodotToken, c.AccountId)
-	for region, rconf := range c.RegionsConfigs {
-		s = s + fmt.Sprintf("Region %s has following config: \n", region)
-		s = s + rconf.String()
-	}
-	return s
-}
-
-type RegionConfig struct {
-	Resources []*MonitoredResource
-}
-
-func (c *RegionConfig) String() string {
-	s := "Monitored resources:\n"
-	for _, r := range c.Resources {
-		s = s + "\n"
-		s = s + r.String()
-	}
-	return s
-}
-
-func GetMetricFunction(rname string) (MetricFunction, error) {
-	switch rname {
+func GetMetricsFunction(servicName string) MetricFunction {
+	switch servicName {
 	case "EC2":
-		return GetEc2Metrics, nil
+		return GetEc2Metrics30
 	case "EBS":
-		return GetEBSMetrics, nil
+		return GetEBSMetrics30
 	case "ELB":
-		return GetELBMetrics, nil
+		return GetELBMetrics30
 	case "S3":
-		return GetS3Metrics, nil
+		return GetS3Metrics30
 	case "Cloudfront":
-		return GetCloudfrontMetrics, nil
+		return GetCloudfrontMetrics30
 	case "NatGateway":
-		return GetNatGatewayMetrics, nil
+		return GetNatGatewayMetrics30
 	case "Efs":
-		return GetEfsMetrics, nil
+		return GetEfsMetrics30
 	case "DynamoDB":
-		return GetDynamoDbMetrics, nil
+		return GetDynamoDbMetrics30
 	case "Kinesis":
-		return GetKinesisMetrics, nil
-	case "Elasticache":
-		return GetElasticacheMetrics, nil
-	default:
-		return nil, fmt.Errorf("Unknown resource type: %s", rname)
+		return GetKinesisMetrics30
+	case "ElastiCache":
+		return GetElasticacheMetrics30
 	}
-}
-
-func getCustomRegion(rname string, rconfig map[interface{}]interface{}) string {
-	r := ""
-	if region, ok := rconfig["Region"].(string); ok {
-		log.Printf("Resource %s has custom region for Cloudwatch. Metrics will fetched from %s.", rname, region)
-		r = region
-	}
-	return r
-}
-
-func getCloudwatchMetrics(rname string, rconfig map[interface{}]interface{}) ([]MetricStat, error) {
-	metrics := make([]MetricStat, 0)
-	if rmetrics, ok := rconfig["CloudWatchMetrics"].([]interface{}); ok {
-		for _, m := range rmetrics {
-			mtf := MetricStat{}
-			mmap := m.(map[interface{}]interface{})
-
-			if id, ok := mmap["Id"]; ok {
-				i, ok := id.(string)
-				if !ok {
-					return metrics, fmt.Errorf("Metric config should have Id")
-				}
-				mtf.Id = i
-			} else {
-				return metrics, fmt.Errorf("Metric config should have Id")
-			}
-
-			if name, ok := mmap["Name"]; ok {
-				n, ok := name.(string)
-				if !ok {
-					return metrics, fmt.Errorf("Metric config should have Name")
-				}
-				mtf.Name = n
-			} else {
-				return metrics, fmt.Errorf("Metric config should have Name")
-			}
-
-			if namespace, ok := mmap["Namespace"]; ok {
-				ns, ok := namespace.(string)
-				if !ok {
-					return metrics, fmt.Errorf("Metric config should have Namespace")
-				}
-				mtf.Namespace = ns
-			} else {
-				return metrics, fmt.Errorf("Metric config should have Namespace")
-			}
-
-			if unit, ok := mmap["Unit"]; ok {
-				u, ok := unit.(string)
-				if !ok {
-					return metrics, fmt.Errorf("Metric config should have Unit")
-				}
-				mtf.Unit = u
-			} else {
-				return metrics, fmt.Errorf("Metric config should have Unit")
-			}
-
-			if stat, ok := mmap["Stat"]; ok {
-				s, ok := stat.(string)
-				if !ok {
-					return metrics, fmt.Errorf("Metric config should have Stat")
-				}
-				mtf.Stat = s
-			} else {
-				return metrics, fmt.Errorf("Metric config should have Stat")
-			}
-
-			if period, ok := mmap["Period"]; ok {
-				p, ok := period.(int)
-				if !ok {
-					return metrics, fmt.Errorf("Metric config should have Period")
-				}
-				mtf.Period = int64(p)
-			} else {
-				return metrics, fmt.Errorf("Metric config should have Period")
-			}
-
-			metrics = append(metrics, mtf)
-		}
-
-	} else {
-		log.Printf("Config for  %s doesn't have  CLoudwatch metrics", rname)
-	}
-	return metrics, nil
-}
-
-func getCustomMetrics(rconfig map[interface{}]interface{}) []string {
-	custommetrics := make([]string, 0)
-	if custommetricsRaw, ok := rconfig["CustomMetrics"].([]interface{}); ok {
-		for _, m := range custommetricsRaw {
-			custommetrics = append(custommetrics, m.(string))
-		}
-	}
-	return custommetrics
-}
-
-func getTags(rname string, rconfig map[interface{}]interface{}) ([]Tag, error) {
-	tagsList := make([]Tag, 0)
-	if tags, ok := rconfig["Tags"].([]interface{}); ok {
-		for _, t := range tags {
-			tag := Tag{}
-			rtag := t.(map[interface{}]interface{})
-			n, ok := rtag["Name"].(string)
-			if !ok {
-				return tagsList, fmt.Errorf("Tag should have Name field")
-			}
-			v, ok := rtag["Value"].(string)
-			if !ok {
-				return tagsList, fmt.Errorf("Tag should have Value field")
-			}
-
-			tag.Name = n
-			tag.Value = v
-			tagsList = append(tagsList, tag)
-		}
-	} else {
-		log.Printf("Config for %s doesn't have filed Tag ", rname)
-	}
-	return tagsList, nil
-}
-
-func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	regionconfigs := make(map[string]RegionConfig)
-	config := map[string]interface{}{}
-	if err := unmarshal(&config); err != nil {
-		return err
-	}
-
-	for region, rconfig := range config {
-		if region == "anodotUrl" {
-			c.AnodotUrl = rconfig.(string)
-			continue
-		}
-
-		if region == "token" {
-			c.AnodotToken = rconfig.(string)
-			continue
-		}
-
-		if region == "accountName" {
-			c.AccountId = rconfig.(string)
-			continue
-		}
-
-		resources := make([]*MonitoredResource, 0)
-		conf := rconfig.(map[interface{}]interface{})
-
-		for rn, rkey := range conf {
-			rname := rn.(string)
-			cmap := rkey.(map[interface{}]interface{})
-			mr := &MonitoredResource{
-				Name: rname,
-			}
-			mfunc, err := GetMetricFunction(rname)
-			if err != nil {
-				return err
-			}
-			mr.MFunction = mfunc
-
-			mr.CustomMetrics = getCustomMetrics(cmap)
-
-			tags, err := getTags(rname, cmap)
-			if err != nil {
-				return err
-			}
-			mr.Tags = tags
-
-			metrics, err := getCloudwatchMetrics(rname, cmap)
-			if err != nil {
-				return err
-			}
-			mr.Metrics = metrics
-
-			mr.CustomRegion = getCustomRegion(rname, cmap)
-
-			resources = append(resources, mr)
-		}
-
-		regionconfigs[region] = RegionConfig{
-			Resources: resources,
-		}
-		c.RegionsConfigs = regionconfigs
-	}
-
 	return nil
+}
+
+func GetSecretValue(secretId, region string) (*string, error) {
+	//session := session.Must(session.NewSession(&aws.Config{Region: aws.String(region)}))
+	session := session.New()
+	i := secretsmanager.GetSecretValueInput{
+		SecretId: aws.String(secretId),
+	}
+	svc := secretsmanager.New(session)
+	o, err := svc.GetSecretValue(&i)
+	if err != nil {
+		return nil, err
+	}
+	return o.SecretString, nil
 }
 
 func GetConfig() (Config, error) {
 	anodotUrl := os.Getenv("anodotUrl")
+
 	token := os.Getenv("token")
 	region := os.Getenv("region")
 	lambda_bucket := os.Getenv("lambda_bucket")
-	accountId := os.Getenv("accountName")
+
+	accountId := os.Getenv("accountId")
+
 	c := Config{}
 
-	if region == "" || lambda_bucket == "" {
-		return Config{}, fmt.Errorf("Please provide region and lambda_bucket (lambda s3 bucket) as lambda functions env var")
+	if region == "" || lambda_bucket == "" || accountId == "" {
+		return Config{}, fmt.Errorf("Please provide region, accountId and lambda_bucket (lambda s3 bucket) as lambda functions env var")
 	}
+
 	c.Region = region
 
 	/*fileData, err := ioutil.ReadFile("cloudwatch_metrics.yaml")
@@ -336,12 +133,29 @@ func GetConfig() (Config, error) {
 		c.AccountId = accountId
 	}
 
+	accessKey, err := GetSecretValue(accountId+"_anodot_access_key", c.Region)
+	if err != nil {
+		log.Fatalf("failed to fetch accessKey from  secrets manager: %v", err)
+	}
+
+	if accessKey == nil {
+		log.Fatalf("failed to fetch accessKey from  secrets manager: accesKey can't be blank")
+	}
+
+	c.AccessKey = *accessKey
+
+	dataToken, err := GetSecretValue(accountId+"_anodot_data_token", c.Region)
+	if err != nil {
+		log.Fatalf("failed to fetch anodot data token from  secrets manager: %v", err)
+	}
+	if accessKey == nil {
+		log.Fatalf("failed to fetch anodot data token from  secrets manager: data token can't be blank")
+	}
+	c.AnodotToken = *dataToken
+
 	if c.AnodotToken == "" || c.AnodotUrl == "" {
 		return c, fmt.Errorf("Too few arguments for lambda function. Please set token, anodotUrl with config file or with lambda env vars.")
 	}
-
-	log.Printf("Input config:")
-	fmt.Print(c.String())
 
 	return c, nil
 }

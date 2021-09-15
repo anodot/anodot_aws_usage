@@ -4,7 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -33,6 +33,15 @@ func ListTables(session *session.Session) ([]DynamoTable, error) {
 	}
 
 	return tables, nil
+}
+func GetDynamoDimensions() []string {
+	return []string{
+		"service",
+		"table_name",
+		"anodot-collector",
+		"region",
+		"operation",
+	}
 }
 
 func GetDynamoProperties(table DynamoTable) map[string]string {
@@ -108,8 +117,8 @@ func GetDynamoCloudwatchMetrics(resource *MonitoredResource, tables []DynamoTabl
 	return metrics, nil
 }
 
-func GetDynamoDbMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+func GetDynamoDbMetrics30(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
+	anodotMetrics := make([]metrics3.AnodotMetrics30, 0)
 
 	cloudWatchFetcher := CloudWatchFetcher{
 		cloudwatchSvc: cloudwatchSvc,
@@ -144,8 +153,7 @@ func GetDynamoDbMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWat
 						properties["operation"] = d.Value
 					}
 				}
-
-				anodot_dynamo_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, properties)
+				anodot_dynamo_metrics := GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, properties)
 				anodotMetrics = append(anodotMetrics, anodot_dynamo_metrics...)
 			}
 		}

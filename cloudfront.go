@@ -4,7 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	metricsAnodot "github.com/anodot/anodot-common/pkg/metrics"
+	"github.com/anodot/anodot-common/pkg/metrics3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
@@ -16,7 +16,6 @@ type Ditribution struct {
 	DomainName  string
 	Enabled     string
 	HttpVersion string
-	Origins     map[string]string
 	Status      string
 }
 
@@ -25,6 +24,7 @@ func GetDitributions(session *session.Session) ([]Ditribution, error) {
 	svc := cloudfront.New(session)
 	input := &cloudfront.ListDistributionsInput{}
 	result, err := svc.ListDistributions(input)
+
 	if err != nil {
 		return distributions, err
 	}
@@ -42,15 +42,20 @@ func GetDitributions(session *session.Session) ([]Ditribution, error) {
 		if d.HttpVersion != nil {
 			distribution.HttpVersion = *d.HttpVersion
 		}
-
-		origins := make(map[string]string)
-		for _, o := range d.Origins.Items {
-			origins[*o.Id] = *o.DomainName
-		}
-		distribution.Origins = origins
 		distributions = append(distributions, distribution)
 	}
 	return distributions, nil
+}
+
+func GetCloudfrontDimensions() []string {
+	return []string{
+		"service",
+		"domain_name",
+		"enabled",
+		"http_version",
+		"distribution_id",
+		"status",
+	}
 }
 
 func GetCloudfrontMetricProperties(distribution Ditribution) map[string]string {
@@ -61,15 +66,6 @@ func GetCloudfrontMetricProperties(distribution Ditribution) map[string]string {
 		"http_version":    distribution.HttpVersion,
 		"distribution_id": distribution.Id,
 		"status":          distribution.Status,
-	}
-
-	for k, v := range distribution.Origins {
-		origin_id := k
-		if len(k) >= 50 {
-			origin_id = string(k[:50])
-		}
-
-		properties[origin_id] = v
 	}
 
 	for k, v := range properties {
@@ -107,7 +103,7 @@ func GetCloudfrontCloudwatchMetrics(resource *MonitoredResource, distributions [
 	return metrics, nil
 }
 
-func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metricsAnodot.Anodot20Metric, error) {
+func GetCloudfrontMetrics30(ses *session.Session, cloudwatchSvc *cloudwatch.CloudWatch, resource *MonitoredResource) ([]metrics3.AnodotMetrics30, error) {
 	if resource.CustomRegion != "" {
 		cloudwatchSvc = cloudwatch.New(session.Must(session.NewSession(&aws.Config{Region: aws.String("us-east-1")})))
 	}
@@ -116,7 +112,7 @@ func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudW
 		cloudwatchSvc: cloudwatchSvc,
 	}
 
-	anodotMetrics := make([]metricsAnodot.Anodot20Metric, 0)
+	anodotMetrics := make([]metrics3.AnodotMetrics30, 0)
 	ditributions, err := GetDitributions(ses)
 	if err != nil {
 		log.Printf("Cloud not get list of Cloudfront distributions: %v", err)
@@ -130,6 +126,7 @@ func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudW
 	}
 	metricdatainput := NewGetMetricDataInput(metrics)
 	metricdataresults, err := cloudWatchFetcher.FetchMetrics(metricdatainput)
+
 	if err != nil {
 		log.Printf("Error during Cloudfront metrics processing: %v", err)
 		return anodotMetrics, err
@@ -140,7 +137,7 @@ func GetCloudfrontMetrics(ses *session.Session, cloudwatchSvc *cloudwatch.CloudW
 			if *mr.Id == m.MStat.Id {
 				d := m.Resource.(Ditribution)
 				//log.Printf("Fetching CloudWatch metric: %s for ELB Id %s \n", m.MStat.Name, e.Name)
-				anodot_cloudwatch_metrics := GetAnodotMetric(m.MStat.Name, mr.Timestamps, mr.Values, GetCloudfrontMetricProperties(d))
+				anodot_cloudwatch_metrics := GetAnodotMetric30(m.MStat.Name, mr.Timestamps, mr.Values, GetCloudfrontMetricProperties(d))
 				anodotMetrics = append(anodotMetrics, anodot_cloudwatch_metrics...)
 			}
 		}

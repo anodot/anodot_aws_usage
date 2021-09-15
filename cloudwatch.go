@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
@@ -16,13 +18,12 @@ type Dimension struct {
 }
 
 type MetricStat struct {
-	Id        string
-	Name      string
-	Namespace string
-	Period    int64
-	Unit      string
-	Stat      string
-	Label     string
+	Id        string `yaml:"Id"`
+	Name      string `yaml:"Name"`
+	Namespace string `yaml:"Namespace"`
+	Period    string `yaml:"Period"`
+	Unit      string `yaml:"Unit"`
+	Stat      string `yaml:"Stat"`
 }
 
 func (ms *MetricStat) String() string {
@@ -58,14 +59,14 @@ func NewGetMetricDataInput(mTofetch []MetricToFetch) []*cloudwatch.GetMetricData
 				Value: value,
 			})
 		}
-
+		p, _ := strconv.Atoi(m.Period)
 		mStat := &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
 				Dimensions: dimensions,
 				MetricName: &m.Name,
 				Namespace:  &m.Namespace,
 			},
-			Period: &m.Period,
+			Period: aws.Int64(int64(p)),
 			Unit:   &m.Unit,
 			Stat:   &m.Stat,
 		}
